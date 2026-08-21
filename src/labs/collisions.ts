@@ -1,17 +1,85 @@
 import { Body } from "../physics/body";
 import { Vec2 } from "../physics/vec";
+import { alpha } from "../render/color";
 import type { CollisionRecord, World } from "../physics/world";
 import { defaultParameters } from "../physics/world";
 import type { Renderer } from "../render/renderer";
 import { equationBlock, frac, num, op, v } from "../ui/equation";
 import { fixed, percent, signed } from "../ui/format";
-import { controlsPanel, customPanel, metricsPanel, type Panel } from "../ui/panels";
+import { controlsPanel, customPanel, listPanel, metricsPanel, type Panel } from "../ui/panels";
+import { radiusForMass } from "./scale";
 import type { Lab, LabHost, PointerState, Toggle } from "./types";
 
-const COLOR_A = "#ff5fa2";
-const COLOR_B = "#4fe3d2";
 /** Metres of arrow drawn per m/s of velocity. */
 const VELOCITY_SCALE = 0.22;
+const MAX_BODIES = 6;
+const NAMES = "ABCDEF";
+const COLORS = ["#ff5fa2", "#4fe3d2", "#ffc861", "#a98bff", "#45dd8b", "#6fa8ff"];
+
+/** One body as the reader configured it, independent of any World. */
+interface Spec {
+  mass: number;
+  /** Along x, in m/s. */
+  velocity: number;
+  /** Vertical position as a fraction of half the box height. */
+  lane: number;
+}
+
+/** A named starting configuration, so the interesting cases are one click away. */
+interface Preset {
+  id: string;
+  label: string;
+  restitution: number;
+  specs: Spec[];
+}
+
+const PRESETS: Preset[] = [
+  {
+    id: "pair",
+    label: "pair",
+    restitution: 1,
+    specs: [
+      { mass: 1, velocity: 3, lane: 0 },
+      { mass: 2, velocity: -1, lane: 0 },
+    ],
+  },
+  {
+    id: "cradle",
+    label: "cradle",
+    restitution: 1,
+    // Four at rest and touching, struck from the left. The impulse crosses the
+    // row and only the far one leaves -- Newton's cradle, without the string.
+    specs: [
+      { mass: 1, velocity: 3, lane: 0 },
+      { mass: 1, velocity: 0, lane: 0 },
+      { mass: 1, velocity: 0, lane: 0 },
+      { mass: 1, velocity: 0, lane: 0 },
+      { mass: 1, velocity: 0, lane: 0 },
+    ],
+  },
+  {
+    id: "wall",
+    label: "wall",
+    restitution: 1,
+    // A light body against a very heavy one: it comes back at nearly its own
+    // speed, and the heavy one barely notices.
+    specs: [
+      { mass: 0.3, velocity: 4, lane: 0 },
+      { mass: 10, velocity: 0, lane: 0 },
+    ],
+  },
+  {
+    id: "break",
+    label: "spread",
+    restitution: 1,
+    specs: [
+      { mass: 1.4, velocity: 3.5, lane: 0 },
+      { mass: 1, velocity: 0, lane: -0.28 },
+      { mass: 1, velocity: 0, lane: 0.28 },
+      { mass: 1, velocity: 0, lane: 0 },
+    ],
+  },
+];
 
 /**
  * The flagship experiment: two discs, set up by hand, colliding once.
@@ -24,11 +92,14 @@ const VELOCITY_SCALE = 0.22;
 export class CollisionsLab implements Lab {
   readonly id = "collisions";
   readonly title = "Collisions";
-  readonly blurb = "Two bodies, one impact, and the impulse that resolves it — with your own numbers in it.";
+  readonly blurb =
+    "Build a row of bodies, set their masses, and read the impulse that resolves each impact.";
   readonly worldHeight = 3.4;
   readonly interactive = false;
 
   readonly about = `
+    <p>Add bodies with <strong>+ add</strong>, click one on the canvas or in the list to select
+    it, and give it whatever mass and speed you like. The presets are quick starts.</p>
     <p>A collision does not change velocities gradually. It changes them all at once, through
     an <strong>impulse</strong> — a transfer of momentum that acts along the
     <em>contact normal</em>, the line joining the two centres at the instant they touch.</p>
@@ -44,25 +115,22 @@ export class CollisionsLab implements Lab {
       <li>Equal masses, e = 1, one at rest: they leave at exactly <strong>90°</strong>.</li>
       <li>With a huge <em>m</em><sub>2</sub>, the light body bounces back at nearly its own speed.</li>
       <li>Momentum is conserved <em>always</em>, whatever e is. Energy is not.</li>
+      <li>Try the <strong>cradle</strong> preset: the struck row stays still and only the far
+      body leaves, at exactly the incoming speed.</li>
     </ul>`;
 
-  // Setup, in SI units. These persist across rebuilds so the experiment can be
-  // re-armed with the same numbers.
-  massA = 1;
-  massB = 2;
-  speedA = 3;
-  speedB = -1;
-  /** Vertical offset of B, in radii. Zero is a head-on hit. */
-  offset = 0;
+  /** The experiment as configured, independent of any running World. */
+  specs: Spec[] = PRESETS[0]!.specs.map((spec) => ({ ...spec }));
   restitution = 1;
+  /** Index into `specs`; the body the detail panel edits. */
+  selected = 0;
 
   showVectors = true;
   showGhosts = true;
   pauseOnImpact = false;
 
-  private bodyA: Body | null = null;
-  private bodyB: Body | null = null;
-  private armedAt = { a: Vec2.zero, b: Vec2.zero };
+  private bodies: Body[] = [];
+  private armedAt: Vec2[] = [];
   private captured: CollisionRecord | null = null;
   private lastSignature = "";
   private seenRecords = 0;
@@ -72,7 +140,16 @@ export class CollisionsLab implements Lab {
 
   /** Identifies the experiment, so a replay can be told from a new setup. */
   private signature(): string {
-    return [this.massA, this.massB, this.speedA, this.speedB, this.offset].join("|");
+    return this.specs.map((s) => `${s.mass}/${s.velocity}/${s.lane}`).join("|");
+  }
+
+  /** The spec the detail panel is editing; never undefined. */
+  private get current(): Spec {
+    return this.specs[Math.min(this.selected, this.specs.length - 1)] ?? this.specs[0]!;
+  }
+
+  private radiusOf(spec: Spec): number {
+    return radiusForMass(spec.mass, 0.13);
   }
 
   setup(world: World, _host: LabHost): void {
@@ -84,49 +161,53 @@ export class CollisionsLab implements Lab {
       iterations: 12,
     });
 
-    const radiusA = radiusFor(this.massA);
-    const radiusB = radiusFor(this.massB);
     const midY = world.height / 2;
-    const midX = world.width / 2;
-    // Started far enough apart that the approach is visible before contact,
-    // and offset vertically by a share of the radii to set the impact angle.
-    // Far enough apart that the approach reads as an approach, but no further:
-    // the interesting instant is the contact, and a long glide to reach it is
-    // just waiting.
-    const closing = Math.max(Math.abs(this.speedA - this.speedB), 0.4);
-    const gap = Math.min(world.width * 0.34, Math.max(0.55, closing * 0.34));
+    const radii = this.specs.map((spec) => this.radiusOf(spec));
 
-    this.bodyA = new Body({
-      position: new Vec2(midX - gap, midY),
-      velocity: new Vec2(this.speedA, 0),
-      radius: radiusA,
-      mass: this.massA,
-      color: COLOR_A,
-      label: "A",
+    // Laid out left to right, each just clear of its neighbour. Bodies that
+    // start at rest are placed touching, so a row of them passes an impulse
+    // along the chain rather than drifting into one.
+    const gap = 0.02;
+    let cursor = 0;
+    const offsets = radii.map((radius, index) => {
+      const previous = radii[index - 1];
+      cursor += index === 0 ? 0 : previous! + radius + gap;
+      return cursor;
     });
-    this.bodyB = new Body({
-      position: new Vec2(midX + gap, midY + this.offset * (radiusA + radiusB)),
-      velocity: new Vec2(this.speedB, 0),
-      radius: radiusB,
-      mass: this.massB,
-      color: COLOR_B,
-      label: "B",
+    const span = offsets[offsets.length - 1]! + radii[0]! + radii[radii.length - 1]!;
+    // The whole train is centred, then pushed left by the room the first body
+    // needs to build up speed before it reaches the others.
+    const runway = Math.min(world.width * 0.3, 1.5);
+    const left = Math.max(radii[0]! + 0.05, (world.width - span) / 2 - runway * 0.5);
+
+    this.bodies = this.specs.map((spec, index) => {
+      const body = new Body({
+        position: new Vec2(
+          left + offsets[index]! + (index === 0 ? 0 : runway),
+          midY + spec.lane * (world.height / 2 - radii[index]! - 0.05),
+        ),
+        velocity: new Vec2(spec.velocity, 0),
+        radius: radii[index]!,
+        mass: spec.mass,
+        color: COLORS[index % COLORS.length]!,
+        label: NAMES[index] ?? "",
+      });
+      world.add(body);
+      return body;
     });
 
-    world.add(this.bodyA);
-    world.add(this.bodyB);
     world.markReferenceEnergy();
-
-    this.armedAt = { a: this.bodyA.position, b: this.bodyB.position };
+    this.armedAt = this.bodies.map((body) => body.position);
     // On a replay of the *same* setup the previous reading stays on screen, so
-    // the numbers remain readable while the pair flies back in. Only a genuine
+    // the numbers remain readable while the bodies fly back in. Only a genuine
     // change of the experiment clears it.
     if (!sameSetup) this.captured = null;
     this.lastSignature = this.signature();
     this.seenRecords = 0;
     this.idleAfterImpact = 0;
-    this.momentumBefore = this.massA * this.speedA + this.massB * this.speedB;
-    this.energyBefore = 0.5 * this.massA * this.speedA ** 2 + 0.5 * this.massB * this.speedB ** 2;
+    this.momentumBefore = this.specs.reduce((sum, s) => sum + s.mass * s.velocity, 0);
+    this.energyBefore = this.specs.reduce((sum, s) => sum + 0.5 * s.mass * s.velocity ** 2, 0);
+    if (this.selected >= this.specs.length) this.selected = this.specs.length - 1;
   }
 
   tick(world: World, dt: number, host: LabHost): void {
@@ -137,46 +218,44 @@ export class CollisionsLab implements Lab {
       if (this.pauseOnImpact) host.pause();
     }
 
-    if (!this.captured) return;
-    // Once the pair has drifted out of sight, re-arm so the experiment loops
-    // without the viewer having to reach for the reset button.
-    const a = this.bodyA;
-    const b = this.bodyB;
-    if (!a || !b) return;
-    const margin = 0.35;
-    // Either body leaving ends the run. Waiting for both means staring at one
-    // slow straggler crossing an otherwise empty box.
-    const gone = outside(a.position, world, margin) || outside(b.position, world, margin);
-    if (gone && !host.paused) {
+    // Replay once the box is empty. Bodies left at rest keep it from ever
+    // emptying, which is the right outcome: nothing is going to happen, so
+    // there is nothing to replay.
+    const anyVisible = this.bodies.some((body) => !outside(body.position, world, 0.35));
+    if (!anyVisible && !host.paused) {
       this.idleAfterImpact += dt;
-      // Barely a beat: an empty box is dead air, and the reading the viewer
-      // came for stays in the panel across the replay anyway.
       if (this.idleAfterImpact > 0.12) host.rearm();
+    } else {
+      this.idleAfterImpact = 0;
     }
   }
 
-  annotate(renderer: Renderer, world: World, _pointer: PointerState): void {
-    const a = this.bodyA;
-    const b = this.bodyB;
-    if (!a || !b) return;
+  onPick(body: Body | null): void {
+    if (!body) return;
+    const index = this.bodies.indexOf(body);
+    if (index >= 0) this.selected = index;
+  }
 
-    if (this.showGhosts && this.captured) {
-      // Where each body started, so the deflection is measurable against it.
-      renderer.drawGuide(this.armedAt.a, a.position, "rgba(244, 115, 111, 0.2)", [3, 5]);
-      renderer.drawGuide(this.armedAt.b, b.position, "rgba(87, 207, 240, 0.2)", [3, 5]);
+  annotate(renderer: Renderer, world: World, _pointer: PointerState): void {
+    if (this.showGhosts) {
+      this.bodies.forEach((body, index) => {
+        const from = this.armedAt[index];
+        if (!from) return;
+        renderer.drawGuide(from, body.position, alpha(body.color, 0.22), [3, 5]);
+      });
     }
 
-    if (this.captured) {
-      const record = this.captured;
+    const record = this.captured;
+    if (record) {
       // The contact normal: the line every impulse in this engine acts along.
-      const extent = 0.55;
+      const extent = 0.5;
       renderer.drawGuide(
         record.point.sub(record.normal.scale(extent)),
         record.point.add(record.normal.scale(extent)),
-        "rgba(243, 181, 69, 0.55)",
+        "rgba(255, 200, 97, 0.55)",
         [4, 4],
       );
-      renderer.drawCross(record.point, "rgba(243, 181, 69, 0.9)", 4);
+      renderer.drawCross(record.point, "rgba(255, 200, 97, 0.9)", 4);
     }
 
     if (this.showVectors) {
@@ -184,10 +263,14 @@ export class CollisionsLab implements Lab {
         renderer.drawVector(body.position, body.velocity, {
           color: body.color,
           scale: VELOCITY_SCALE,
-          label: "v",
         });
       }
     }
+
+    // The body the panel is editing, bracketed on the canvas so the two views
+    // never disagree about which one is selected.
+    const active = this.bodies[this.selected];
+    if (active) renderer.drawBody(active, { highlight: true });
   }
 
   toggles(): Toggle[] {
@@ -222,70 +305,89 @@ export class CollisionsLab implements Lab {
   panels(world: World, host: LabHost): Panel[] {
     const rebuild = () => host.rearm();
 
-    const setup = controlsPanel(
-      "setup",
+    const roster = listPanel("bodies", {
+      rows: () =>
+        this.specs.map((spec, index) => ({
+          key: String(index),
+          swatch: COLORS[index % COLORS.length]!,
+          name: NAMES[index] ?? "?",
+          detail: `${fixed(spec.mass, 2)} kg  ${signed(spec.velocity, 2)} m/s`,
+        })),
+      selectedKey: () => String(this.selected),
+      select: (key) => {
+        this.selected = Number(key);
+      },
+      onAdd: {
+        label: "+ add",
+        enabled: () => this.specs.length < MAX_BODIES,
+        run: () => {
+          if (this.specs.length >= MAX_BODIES) return;
+          // A new body arrives at rest in the middle of the pack, which is the
+          // only starting state that never invalidates the run already set up.
+          this.specs.push({ mass: 1, velocity: 0, lane: 0 });
+          this.selected = this.specs.length - 1;
+          rebuild();
+        },
+      },
+      onRemove: {
+        label: "− remove",
+        enabled: () => this.specs.length > 2,
+        run: () => {
+          if (this.specs.length <= 2) return;
+          this.specs.splice(this.selected, 1);
+          this.selected = Math.min(this.selected, this.specs.length - 1);
+          rebuild();
+        },
+      },
+    });
+
+    const detail = controlsPanel(
+      "selected",
       [
         {
-          label: `mass <em>m</em><span class="sub">1</span>`,
+          label: `mass <em>m</em>`,
           unit: "kg",
           min: 0.2,
           max: 10,
           step: 0.1,
-          get: () => this.massA,
+          get: () => this.current.mass,
           set: (value) => {
-            this.massA = value;
+            this.current.mass = value;
             rebuild();
           },
         },
         {
-          label: `mass <em>m</em><span class="sub">2</span>`,
-          unit: "kg",
-          min: 0.2,
-          max: 10,
-          step: 0.1,
-          get: () => this.massB,
-          set: (value) => {
-            this.massB = value;
-            rebuild();
-          },
-        },
-        {
-          label: `velocity <em>v</em><span class="sub">1</span>`,
+          label: `velocity <em>v</em>`,
           unit: "m/s",
           min: -6,
           max: 6,
           step: 0.1,
-          get: () => this.speedA,
+          get: () => this.current.velocity,
           set: (value) => {
-            this.speedA = value;
+            this.current.velocity = value;
             rebuild();
           },
         },
         {
-          label: `velocity <em>v</em><span class="sub">2</span>`,
-          unit: "m/s",
-          min: -6,
-          max: 6,
-          step: 0.1,
-          get: () => this.speedB,
+          label: "lane",
+          min: -0.9,
+          max: 0.9,
+          step: 0.05,
+          get: () => this.current.lane,
           set: (value) => {
-            this.speedB = value;
+            this.current.lane = value;
             rebuild();
           },
+          format: (value) => (Math.abs(value) < 0.03 ? "centre" : fixed(value, 2)),
+          ticks: ["above", "below"],
         },
-        {
-          label: "offset",
-          min: -0.98,
-          max: 0.98,
-          step: 0.02,
-          get: () => this.offset,
-          set: (value) => {
-            this.offset = value;
-            rebuild();
-          },
-          format: (value) => (Math.abs(value) < 0.02 ? "head-on" : fixed(value, 2)),
-          ticks: ["glancing", "glancing"],
-        },
+      ],
+      () => NAMES[this.selected] ?? "",
+    );
+
+    const table = controlsPanel(
+      "conditions",
+      [
         {
           label: `restitution <em>e</em>`,
           min: 0,
@@ -301,8 +403,28 @@ export class CollisionsLab implements Lab {
           ticks: ["they stick", "perfect bounce"],
         },
       ],
-      "re-arms on change",
+      "applies live",
     );
+
+    const starters = customPanel("presets", (body) => {
+      const row = document.createElement("div");
+      row.className = "preset-row";
+      for (const preset of PRESETS) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "list-action";
+        button.textContent = preset.label;
+        button.addEventListener("click", () => {
+          this.specs = preset.specs.map((spec) => ({ ...spec }));
+          this.restitution = preset.restitution;
+          this.selected = 0;
+          rebuild();
+        });
+        row.append(button);
+      }
+      body.append(row);
+      return () => {};
+    });
 
     const equation = customPanel("the impulse", (body) => {
       const formula = document.createElement("div");
@@ -357,7 +479,7 @@ export class CollisionsLab implements Lab {
         }
         note.textContent = `t = ${fixed(record.time, 2)} s`;
         pair.innerHTML =
-          side(record.a, "A", COLOR_A) +
+          side(record.a) +
           `<div class="impact-pair" style="margin:6px 0 8px">
              <span class="impact-velocity">approaching at ${fixed(record.approachSpeed, 3)} m/s</span>
              <span class="impact-glyph">→‖←</span>
@@ -366,7 +488,7 @@ export class CollisionsLab implements Lab {
                3,
              )} m/s</span>
            </div>` +
-          side(record.b, "B", COLOR_B);
+          side(record.b);
       };
     });
 
@@ -412,17 +534,16 @@ export class CollisionsLab implements Lab {
       "p always conserved",
     );
 
-    return [setup, equation, inspector, conservation];
+    return [starters, roster, detail, table, equation, inspector, conservation];
   }
 }
 
-function side(part: CollisionRecord["a"], name: string, color: string): string {
+function side(part: CollisionRecord["a"]): string {
   return `<div class="impact-pair">
       <div class="impact-body">
-        <span class="impact-name"><i class="impact-swatch" style="background:${color}"></i>${name} · ${fixed(
-          part.mass,
-          2,
-        )} kg</span>
+        <span class="impact-name"><i class="impact-swatch" style="background:${part.color}"></i>${
+          part.label || "?"
+        } · ${fixed(part.mass, 2)} kg</span>
         <span class="impact-velocity">
           ${signed(part.before.x, 3)}
           <span class="arrow">→</span>
@@ -435,11 +556,6 @@ function side(part: CollisionRecord["a"], name: string, color: string): string {
         <span class="impact-velocity" style="color:var(--text-faint)">kg·m/s</span>
       </div>
     </div>`;
-}
-
-/** Discs keep a constant density, so a heavier body is visibly bigger. */
-function radiusFor(mass: number): number {
-  return 0.12 * Math.cbrt(mass) + 0.04;
 }
 
 function outside(position: Vec2, world: World, margin: number): boolean {

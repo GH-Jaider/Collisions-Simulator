@@ -112,8 +112,13 @@ export interface ControlSpec {
   ticks?: [string, string];
 }
 
-export function controlsPanel(title: string, specs: ControlSpec[], note?: string): Panel {
-  const { root, body } = panelShell(title, note);
+export function controlsPanel(
+  title: string,
+  specs: ControlSpec[],
+  note?: string | (() => string),
+): Panel {
+  const shell = panelShell(title, typeof note === "string" ? note : undefined);
+  const { root, body } = shell;
 
   const controls = specs.map((spec) => {
     const wrap = document.createElement("div");
@@ -157,6 +162,10 @@ export function controlsPanel(title: string, specs: ControlSpec[], note?: string
   return {
     element: root,
     update() {
+      if (typeof note === "function") {
+        const text = note();
+        if (shell.note.textContent !== text) shell.note.textContent = text;
+      }
       for (const control of controls) {
         const current = control.spec.get();
         // Only write back when the slider is out of step with the model, or
@@ -208,4 +217,108 @@ export function escapeHtml(text: string): string {
   return text.replace(/[&<>"]/g, (char) =>
     char === "&" ? "&amp;" : char === "<" ? "&lt;" : char === ">" ? "&gt;" : "&quot;",
   );
+}
+
+
+// -- selectable list ------------------------------------------------------
+
+export interface ListRow {
+  /** Stable across frames, so a row is only rebuilt when it truly changes. */
+  key: string;
+  swatch: string;
+  name: string;
+  detail: string;
+}
+
+export interface ListSpec {
+  rows(): ListRow[];
+  selectedKey(): string | null;
+  select(key: string): void;
+  /** Rendered as a pair of actions under the list. Omit to hide them. */
+  onAdd?: { label: string; run(): void; enabled(): boolean };
+  onRemove?: { label: string; run(): void; enabled(): boolean };
+  emptyMessage?: string;
+}
+
+export function listPanel(title: string, spec: ListSpec): Panel {
+  const shell = panelShell(title);
+  const list = document.createElement("div");
+  list.className = "list";
+  shell.body.append(list);
+
+  let actions: HTMLElement | null = null;
+  let addButton: HTMLButtonElement | null = null;
+  let removeButton: HTMLButtonElement | null = null;
+  if (spec.onAdd || spec.onRemove) {
+    actions = document.createElement("div");
+    actions.className = "list-actions";
+    if (spec.onAdd) {
+      addButton = actionButton(spec.onAdd.label, spec.onAdd.run);
+      actions.append(addButton);
+    }
+    if (spec.onRemove) {
+      removeButton = actionButton(spec.onRemove.label, spec.onRemove.run);
+      actions.append(removeButton);
+    }
+    shell.body.append(actions);
+  }
+
+  let signature = "";
+
+  return {
+    element: shell.root,
+    update() {
+      const rows = spec.rows();
+      const selected = spec.selectedKey();
+      // Rebuilding only on a real change keeps the row a click can land on
+      // from being replaced underneath the pointer sixty times a second.
+      const next = rows.map((r) => `${r.key}|${r.name}|${r.detail}|${r.swatch}`).join("~") +
+        `#${selected ?? ""}`;
+      if (next !== signature) {
+        signature = next;
+        list.replaceChildren();
+        if (rows.length === 0 && spec.emptyMessage) {
+          const empty = document.createElement("p");
+          empty.className = "inspector-empty";
+          empty.textContent = spec.emptyMessage;
+          list.append(empty);
+        }
+        for (const row of rows) {
+          const item = document.createElement("button");
+          item.type = "button";
+          item.className = "list-row";
+          item.setAttribute("aria-pressed", String(row.key === selected));
+
+          const swatch = document.createElement("i");
+          swatch.className = "list-swatch";
+          swatch.style.background = row.swatch;
+
+          const name = document.createElement("span");
+          name.className = "list-name";
+          name.textContent = row.name;
+
+          const detail = document.createElement("span");
+          detail.className = "list-detail";
+          detail.textContent = row.detail;
+
+          item.append(swatch, name, detail);
+          item.addEventListener("click", () => spec.select(row.key));
+          list.append(item);
+        }
+      }
+
+      if (addButton && spec.onAdd) addButton.disabled = !spec.onAdd.enabled();
+      if (removeButton && spec.onRemove) removeButton.disabled = !spec.onRemove.enabled();
+      shell.note.textContent = String(rows.length);
+    },
+  };
+}
+
+function actionButton(label: string, run: () => void): HTMLButtonElement {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "list-action";
+  button.textContent = label;
+  button.addEventListener("click", run);
+  return button;
 }

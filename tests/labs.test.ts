@@ -195,6 +195,45 @@ describe("gravity", () => {
     lab.strength = 1;
   });
 
+  it("keeps orbits tidy at a test mass and loses them at a heavy one", () => {
+    // The circular-orbit formula assumes the satellites are too light to
+    // matter. This pins both halves of that: it holds where the assumption
+    // holds, and visibly stops holding where it does not.
+    const lab = gravity as unknown as { satelliteMass: number };
+    const saved = lab.satelliteMass;
+
+    const spread = (satelliteMass: number): number => {
+      lab.satelliteMass = satelliteMass;
+      const world = build(gravity, 8, 4.2);
+      const star = world.bodies.find((body) => body.isStatic)!;
+      const satellites = world.bodies.filter((body) => !body.isStatic);
+      const launch = satellites.map((body) => body.position.distanceTo(star.position));
+      run(gravity, world, 30);
+      let worst = 0;
+      satellites.forEach((body, index) => {
+        const now = body.position.distanceTo(star.position);
+        worst = Math.max(worst, Math.abs(now - launch[index]!) / launch[index]!);
+      });
+      return worst;
+    };
+
+    expect(spread(0.02)).toBeLessThan(0.05);
+    expect(spread(5)).toBeGreaterThan(0.05);
+    lab.satelliteMass = saved;
+  });
+
+  it("sizes the star from its mass", () => {
+    const lab = gravity as unknown as { starMass: number };
+    const saved = lab.starMass;
+    const radiusAt = (mass: number): number => {
+      lab.starMass = mass;
+      const world = build(gravity, 8, 4.2);
+      return world.bodies.find((body) => body.isStatic)!.radius;
+    };
+    expect(radiusAt(600)).toBeGreaterThan(radiusAt(80));
+    lab.starMass = saved;
+  });
+
   it("completes at least one full lap", () => {
     const world = build(gravity, 8, 4.2);
     const star = world.bodies.find((body) => body.isStatic)!;
@@ -228,6 +267,64 @@ describe("collisions", () => {
     const expected =
       ((1 + record.restitution) * record.approachSpeed) / (1 / record.a.mass + 1 / record.b.mass);
     expect(record.impulse).toBeCloseTo(expected, 6);
+  });
+
+  it("builds as many bodies as it is given, sized by their masses", () => {
+    const lab = collisions as unknown as {
+      specs: Array<{ mass: number; velocity: number; lane: number }>;
+    };
+    const saved = lab.specs;
+    lab.specs = [
+      { mass: 0.4, velocity: 3, lane: 0 },
+      { mass: 1, velocity: 0, lane: 0 },
+      { mass: 4, velocity: 0, lane: 0.3 },
+      { mass: 8, velocity: -1, lane: -0.3 },
+    ];
+    const world = build(collisions, 8, 3.4);
+    expect(world.bodies).toHaveLength(4);
+
+    // Radius has to be monotonic in mass, or "heavier is bigger" is a lie.
+    const bySpec = [...world.bodies].sort((a, b) => a.mass - b.mass);
+    for (let i = 1; i < bySpec.length; i++) {
+      expect(bySpec[i]!.radius).toBeGreaterThan(bySpec[i - 1]!.radius);
+    }
+    // And nothing may start already overlapping, whatever the sizes.
+    for (let i = 0; i < world.bodies.length; i++) {
+      for (let j = i + 1; j < world.bodies.length; j++) {
+        const a = world.bodies[i]!;
+        const b = world.bodies[j]!;
+        expect(a.position.distanceTo(b.position)).toBeGreaterThanOrEqual(a.radius + b.radius - 1e-9);
+      }
+    }
+
+    const momentum = world.totalMomentum;
+    run(collisions, world, 4, 1 / 240);
+    expect(world.totalMomentum.sub(momentum).length).toBeLessThan(1e-9);
+    lab.specs = saved;
+  });
+
+  it("passes the impulse down a cradle to the far body alone", () => {
+    // Five equal bodies touching, struck from one end: the classic result is
+    // that the row stays put and only the last one leaves, at the incoming
+    // speed. It is the sharpest test of the whole contact solver.
+    const lab = collisions as unknown as {
+      specs: Array<{ mass: number; velocity: number; lane: number }>;
+    };
+    const saved = lab.specs;
+    lab.specs = Array.from({ length: 5 }, (_, index) => ({
+      mass: 1,
+      velocity: index === 0 ? 3 : 0,
+      lane: 0,
+    }));
+    const world = build(collisions, 8, 3.4);
+    run(collisions, world, 2.5, 1 / 240);
+
+    const ordered = [...world.bodies].sort((a, b) => a.position.x - b.position.x);
+    for (const body of ordered.slice(0, -1)) {
+      expect(body.speed).toBeLessThan(1e-6);
+    }
+    expect(ordered[ordered.length - 1]!.velocity.x).toBeCloseTo(3, 6);
+    lab.specs = saved;
   });
 
   it("conserves momentum whatever the restitution", () => {

@@ -41,6 +41,15 @@ export interface Lab {
   tick?(world: World, dt: number, host: LabHost): void;
   /** Annotation drawn over the bodies. */
   annotate?(renderer: Renderer, world: World, pointer: PointerState): void;
+  /**
+   * A click on the canvas in a lab that is not `interactive`.
+   *
+   * Dragging would disturb a controlled setup, but selecting should not, so a
+   * lab that edits its bodies one at a time gets the pick without having to
+   * opt into the whole manipulation model.
+   */
+  onPick?(body: import("../physics/body").Body | null): void;
+
   /** Readout panels, built once when the lab is selected. */
   panels(world: World, host: LabHost): Panel[];
   /**

@@ -247,7 +247,14 @@ class Application implements LabHost {
     });
 
     canvas.addEventListener("pointerdown", (event) => {
-      if (event.button !== 0 || !this.lab.interactive) return;
+      if (event.button !== 0) return;
+      if (!this.lab.interactive) {
+        if (this.lab.onPick) {
+          const point = this.renderer.toWorld(event.clientX, event.clientY);
+          this.lab.onPick(this.world.bodyAt(point));
+        }
+        return;
+      }
       canvas.setPointerCapture(event.pointerId);
       canvas.classList.add("grabbing");
       const point = this.renderer.toWorld(event.clientX, event.clientY);

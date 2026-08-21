@@ -7,21 +7,23 @@ import { chartPanel } from "../ui/charts";
 import { fixed, percent } from "../ui/format";
 import { controlsPanel, metricsPanel, type Panel } from "../ui/panels";
 import { seeded } from "./layout";
+import { radiusForMass } from "./scale";
 import type { Lab, LabHost, PointerState, Toggle } from "./types";
 
 const SHELL_COLORS = ["#ffc861", "#45dd8b", "#4fe3d2", "#a98bff", "#ff5fa2"];
 /**
- * Satellites are near-massless on purpose.
+ * Satellites default to near-massless, and it matters.
  *
  * At any appreciable mass they pull on *each other* as well as on the star,
  * and since neighbouring orbits have neighbouring periods those little tugs
  * accumulate every time two satellites pass. The shells shear apart within a
- * few laps and the tidy 1/r^2 demonstration turns into a chaotic scribble.
- * Keeping them at a ten-thousandth of the central mass puts them in the
- * test-particle limit, which is the regime the circular-orbit formula
- * describes in the first place.
+ * few laps and the tidy 1/r² demonstration turns into a chaotic scribble.
+ * Keeping them light puts them in the test-particle limit, which is the regime
+ * the circular-orbit formula describes in the first place -- but the slider
+ * runs well past it on purpose, because watching the tidy picture fall apart
+ * is the clearest way to see what that assumption was buying.
  */
-const SATELLITE_MASS = 0.02;
+const DEFAULT_SATELLITE_MASS = 0.02;
 /**
  * A scaled gravitational constant. The real one would need planetary masses to
  * produce a visible orbit, so this is an honest model system rather than a
@@ -60,11 +62,19 @@ export class GravityLab implements Lab {
     The orbit was never something pushing them out; it was gravity continuously bending a
     straight line.</p>
     <p>Turn it back on and they are captured again, though rarely onto the circle they left:
-    they now arrive with the wrong speed for wherever they happen to be.</p>`;
+    they now arrive with the wrong speed for wherever they happen to be.</p>
+    <h3>Give the satellites some weight</h3>
+    <p>The circular-orbit formula quietly assumes the satellites are too light to matter. Push
+    <strong>satellite mass</strong> up and watch that assumption fail: they begin pulling on
+    each other as well as on the star, and because neighbouring orbits keep neighbouring time,
+    those small tugs land in the same direction lap after lap until the shells shear apart. The
+    <em>mass ratio</em> readout turns amber when you cross into that regime.</p>
+    <p>Both masses drive the radii on screen, so a heavier body really is a bigger one.</p>`;
 
   shells = 4;
   perShell = 3;
   starMass = 260;
+  satelliteMass = DEFAULT_SATELLITE_MASS;
   showVectors = false;
 
   showTrails = true;
@@ -107,8 +117,18 @@ export class GravityLab implements Lab {
     this.launchRadii.clear();
 
     const centre = new Vec2(world.width / 2, world.height / 2);
-    const starRadius = Math.min(world.width, world.height) * 0.055;
-    const satelliteRadius = Math.min(world.width, world.height) * 0.016;
+    // One density for everything, so the drawn sizes carry the same
+    // information the mass ratio does: at 360 to 1 the star really is about
+    // seven times the radius, because that is what the cube root of 360 is.
+    // Giving the satellites their own scale, as an earlier version did, made a
+    // 2 kg satellite look like a companion star.
+    const unit = Math.min(world.width, world.height);
+    const density = unit * 0.0098;
+    const starRadius = radiusForMass(this.starMass, density);
+    // A test mass is a point particle; below a pixel or two it stops being
+    // drawable, so the floor is a rendering necessity rather than a claim
+    // about its size.
+    const satelliteRadius = Math.max(unit * 0.012, radiusForMass(this.satelliteMass, density));
 
     world.add(
       new Body({
@@ -124,7 +144,9 @@ export class GravityLab implements Lab {
     // An orbit that reaches the wall stops being an orbit at the first bounce,
     // so the outermost shell is kept clear of it.
     const span = Math.min(world.width, world.height) * 0.5 - satelliteRadius - 0.12;
-    const inner = Math.max(starRadius + satelliteRadius * 4, span * 0.34);
+    // Clear of the star's surface with room to spare: an inner orbit that
+    // grazes it looks like a mistake, and one bad step turns it into one.
+    const inner = Math.max(starRadius * 1.75 + satelliteRadius * 2, span * 0.34);
     const softening = (starRadius + satelliteRadius) * 0.5;
 
     for (let shell = 0; shell < this.shells; shell++) {
@@ -146,7 +168,7 @@ export class GravityLab implements Lab {
             position: centre.add(Vec2.fromPolar(distance, angle)),
             velocity: Vec2.fromPolar(speed, angle + Math.PI / 2),
             radius: satelliteRadius,
-            mass: SATELLITE_MASS,
+            mass: this.satelliteMass,
             color: SHELL_COLORS[shell % SHELL_COLORS.length]!,
           }),
         );
@@ -252,8 +274,8 @@ export class GravityLab implements Lab {
       {
         label: "central mass",
         unit: "kg",
-        min: 80,
-        max: 600,
+        min: 40,
+        max: 900,
         step: 10,
         get: () => this.starMass,
         set: (value) => {
@@ -261,6 +283,21 @@ export class GravityLab implements Lab {
           host.rearm();
         },
         format: (value) => String(Math.round(value)),
+      },
+      {
+        label: "satellite mass",
+        unit: "kg",
+        min: 0.01,
+        max: 6,
+        step: 0.01,
+        get: () => this.satelliteMass,
+        set: (value) => {
+          this.satelliteMass = value;
+          host.rearm();
+        },
+        format: (value) =>
+          value <= 0.05 ? `${fixed(value, 2)} · test mass` : fixed(value, 2),
+        ticks: ["negligible", "they perturb"],
       },
       {
         label: "orbits",
@@ -300,6 +337,16 @@ export class GravityLab implements Lab {
 
     const state = metricsPanel("state", [
       { label: "satellites", value: () => String(world.bodies.length - 1) },
+      {
+        label: "mass ratio",
+        value: () => {
+          const ratio = this.starMass / Math.max(this.satelliteMass, 1e-9);
+          return ratio >= 1000 ? `${Math.round(ratio / 1000)}k : 1` : `${Math.round(ratio)} : 1`;
+        },
+        // Below roughly a hundred to one the satellites pull on each other
+        // hard enough to shear the shells apart within a few laps.
+        tone: () => (this.starMass / Math.max(this.satelliteMass, 1e-9) >= 100 ? "" : "warn"),
+      },
       {
         label: "field",
         value: () =>

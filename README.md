@@ -16,9 +16,12 @@ captured with **the impulse equation solved using your own values**.
 
 ### 1 · Collisions
 
-Two discs, one impact. You pick the masses, the velocities, how head-on the hit is, and the
-coefficient of restitution. At the instant of contact the simulator freezes what happened
-and breaks it down:
+A row of discs, up to six of them. Add and remove bodies, click one on the canvas or in the
+list to select it, and give it whatever mass and speed you like — the radius follows the
+mass, so a heavier body really is a bigger one. Four presets are one click away: a plain
+`pair`, a Newton's `cradle`, a light body against a `wall`, and a `spread`.
+
+At the instant of contact the simulator freezes what happened and breaks it down:
 
 $$J = \frac{(1 + e)\,v_{\text{rel}}}{1/m_1 + 1/m_2}$$
 
@@ -32,6 +35,8 @@ Things you can see in thirty seconds:
 - At `e = 1` with equal masses, the velocities **swap**.
 - At `e = 1`, equal masses, one at rest: they leave at exactly **90°**.
 - With a huge `m₂`, the light body bounces back at nearly its own speed.
+- In the `cradle`, the struck row stays still and only the far body leaves, at exactly the
+  incoming speed.
 - Momentum is conserved **always**. Energy only if `e = 1`.
 
 ### 2 · Gas and statistics
@@ -63,7 +68,15 @@ law says. The trails show it plainly: an arc, then a hard straight line. The orb
 never something pushing them out; it was gravity continuously bending a straight line.
 
 The `well strength` slider changes the constant live, so you can wind the well up and watch
-the circles spiral inward, or ease it off and watch them drift out.
+the circles spiral inward, or ease it off and watch them drift out. Both masses are yours
+to set and both drive the radii on screen, at one shared density — at a mass ratio of 360
+to 1 the star really is about seven times the radius, because that is the cube root of 360.
+
+**And then break it.** The circular-orbit formula quietly assumes the satellites are too
+light to matter. Push `satellite mass` up and watch that assumption fail: they start pulling
+on each other as well as on the star, and because neighbouring orbits keep neighbouring
+time, those small tugs land the same way lap after lap until the shells shear apart. The
+mass-ratio readout turns amber as you cross into that regime.
 
 ### 4 · Pool table
 
@@ -77,7 +90,7 @@ that, rolling and sliding look exactly the same.
 ## Why the numbers can be trusted
 
 The engine is completely separate from the display and is verified against results you can
-derive by hand. **44 tests**, and these are the ones that matter:
+derive by hand. **48 tests**, and these are the ones that matter:
 
 | Check | Result |
 |---|---|
@@ -87,6 +100,8 @@ derive by hand. **44 tests**, and these are the ones that matter:
 | The recorded impulse | equals what the formula shown in the panel predicts |
 | Orbits after 40 s, at three well strengths | radius stable to within **5%** |
 | A satellite after the field is cut | leaves along its tangent to within `0.1%`, at unchanged speed |
+| A five-body cradle | the struck row stays still; the far body leaves at the incoming speed |
+| Heavy satellites | orbits hold at a test mass and demonstrably stop holding at 5 kg |
 | A gas starting at one single speed | coefficient of variation 0.35–0.7 (Rayleigh predicts 0.523) |
 | Momentum at `e` = 0, 0.35, 0.8, 1 | conserved in all four cases |
 
@@ -124,7 +139,7 @@ npm run dev        # http://localhost:5173
 ```
 
 ```bash
-npm test           # 44 tests, ~4 s
+npm test           # 48 tests, ~5 s
 npm run build      # to dist/
 ```
 
