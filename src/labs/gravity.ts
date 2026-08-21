@@ -26,9 +26,11 @@ const SATELLITE_MASS = 0.02;
  * A scaled gravitational constant. The real one would need planetary masses to
  * produce a visible orbit, so this is an honest model system rather than a
  * simulation of anything in particular: the 1/r² law is exact, the constant is
- * chosen so that a orbit fits on a screen.
+ * chosen so that an orbit both fits on a screen and takes long enough to watch.
+ * At this value the innermost shell comes round in about a second and the
+ * outermost takes four, which also puts Kepler's third law on display.
  */
-const G = 0.9;
+const G = 0.07;
 
 export class GravityLab implements Lab {
   readonly id = "gravity";
@@ -50,26 +52,57 @@ export class GravityLab implements Lab {
     textbook one, every orbit would come out elliptical from a small systematic error.</p>
     <h3>What to look for</h3>
     <p>The energy plot. Kinetic and potential trade back and forth continuously, but their sum
-    is flat. That exchange <em>is</em> the orbit.</p>`;
+    is flat. That exchange <em>is</em> the orbit.</p>
+    <h3>Cut the string</h3>
+    <p>Switch <strong>gravity</strong> off mid-orbit. Almost everyone expects the satellites to
+    fly outwards, away from the centre — and they do not. With no force acting, each one carries
+    straight on along the <em>tangent</em> it already had, exactly as Newton's first law says.
+    The orbit was never something pushing them out; it was gravity continuously bending a
+    straight line.</p>
+    <p>Turn it back on and they are captured again, though rarely onto the circle they left:
+    they now arrive with the wrong speed for wherever they happen to be.</p>`;
 
   shells = 4;
   perShell = 3;
   starMass = 260;
   showVectors = false;
+
   showTrails = true;
 
+  /** Whether the central attraction is switched on at all. */
+  gravityOn = true;
+  /** Multiplier on the gravitational constant, so the well can be tuned. */
+  strength = 1;
+
+  /** Seconds since gravity was cut, for the on-canvas explanation. */
+  private sinceCut = 0;
   private random = seeded(7);
   /** Launch radius per satellite, so the panel can report orbital drift. */
   private launchRadii = new Map<number, number>();
+
+  /** The constant actually handed to the solver. */
+  private get effectiveG(): number {
+    return this.gravityOn ? G * this.strength : 0;
+  }
+
+  /** Push the current gravity setting into the world, live. */
+  private applyGravity(world: World): void {
+    world.params.mutualGravity = this.effectiveG;
+    // Changing the field changes what potential energy is measured against,
+    // so the reference is re-taken; otherwise the drift readout would report
+    // a jump that never physically happened.
+    world.markReferenceEnergy();
+  }
 
   setup(world: World, _host: LabHost): void {
     world.clear();
     world.params = defaultParameters({
       restitution: 0.85,
       wallRestitution: 1,
-      mutualGravity: G,
+      mutualGravity: this.effectiveG,
       iterations: 8,
     });
+    this.sinceCut = 0;
     this.random = seeded(7);
     this.launchRadii.clear();
 
@@ -100,8 +133,9 @@ export class GravityLab implements Lab {
       // F = GMr/(r² + ε²)^{3/2}, not for a bare inverse square. Using the
       // textbook √(GM/r) here launches everything a few percent too fast and
       // quietly turns every orbit into an ellipse.
+      const launchG = G * this.strength;
       const speed = Math.sqrt(
-        (G * this.starMass * distance * distance) /
+        (launchG * this.starMass * distance * distance) /
           Math.pow(distance * distance + softening * softening, 1.5),
       );
       const phase = this.random() * Math.PI * 2;
@@ -122,7 +156,9 @@ export class GravityLab implements Lab {
     world.markReferenceEnergy();
   }
 
-  tick(world: World, _dt: number, _host: LabHost): void {
+  tick(world: World, dt: number, _host: LabHost): void {
+    if (world.params.mutualGravity !== this.effectiveG) this.applyGravity(world);
+    this.sinceCut = this.gravityOn ? 0 : this.sinceCut + dt;
     if (!this.showTrails) return;
     for (const body of world.bodies) {
       if (body.isStatic) continue;
@@ -142,16 +178,39 @@ export class GravityLab implements Lab {
         if (body.isStatic) renderer.drawBody(body);
       }
     }
-    if (this.showVectors) {
+    if (this.showVectors || !this.gravityOn) {
+      // With the force cut, the velocity arrows are the whole point: they show
+      // each body leaving along the tangent it already had.
       for (const body of world.bodies) {
         if (body.isStatic) continue;
         renderer.drawVector(body.position, body.velocity, { color: body.color, scale: 0.09 });
       }
     }
+
+    if (!this.gravityOn) {
+      renderer.drawNote("gravity off · no force, so no curve", 12, 12, "#ffc861");
+      if (this.sinceCut > 0.7) {
+        renderer.drawNote(
+          "each body leaves along its tangent, not outward from the centre",
+          12,
+          28,
+          "#9494ab",
+        );
+      }
+    }
   }
 
-  toggles(): Toggle[] {
+  toggles(world: World): Toggle[] {
     return [
+      {
+        id: "gravity",
+        label: "gravity",
+        get: () => this.gravityOn,
+        set: (value) => {
+          this.gravityOn = value;
+          this.applyGravity(world);
+        },
+      },
       {
         id: "trails",
         label: "orbits",
@@ -173,6 +232,23 @@ export class GravityLab implements Lab {
 
   panels(world: World, host: LabHost): Panel[] {
     const controls = controlsPanel("setup", [
+      {
+        // Live rather than a rebuild: turning the well up and watching the
+        // circles wind inwards is a better demonstration than being handed a
+        // fresh set of circles at the new strength.
+        label: `well strength <em>G</em>`,
+        min: 0,
+        max: 2.5,
+        step: 0.05,
+        get: () => this.strength,
+        set: (value) => {
+          this.strength = value;
+          this.applyGravity(world);
+        },
+        format: (value) =>
+          !this.gravityOn ? "off" : value === 0 ? "0.00 · none" : `${fixed(value, 2)}x`,
+        ticks: ["none", "strong"],
+      },
       {
         label: "central mass",
         unit: "kg",
@@ -225,6 +301,12 @@ export class GravityLab implements Lab {
     const state = metricsPanel("state", [
       { label: "satellites", value: () => String(world.bodies.length - 1) },
       {
+        label: "field",
+        value: () =>
+          !this.gravityOn || this.strength === 0 ? "off" : `1/r² · ${fixed(this.strength, 2)}x`,
+        tone: () => (this.gravityOn && this.strength > 0 ? "" : "warn"),
+      },
+      {
         label: "radius deviation",
         value: () => {
           const star = world.bodies.find((body) => body.isStatic);
@@ -237,7 +319,9 @@ export class GravityLab implements Lab {
           }
           return `${fixed(worst * 100, 2)}%`;
         },
-        tone: () => "good",
+        // Only a verdict while a well is actually holding the orbits; with the
+        // force cut, a growing radius is the expected result, not a fault.
+        tone: () => (this.gravityOn && this.strength > 0 ? "good" : "muted"),
       },
       { label: "kinetic", unit: "J", value: () => fixed(world.kineticEnergy, 2) },
       { label: "potential", unit: "J", value: () => fixed(world.potentialEnergy, 2) },

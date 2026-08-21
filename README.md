@@ -52,7 +52,18 @@ and drawn on top; that the two agree is the result, not the premise.
 
 Inverse-square attraction between every pair of bodies, with each satellite launched at
 exactly its circular-orbit speed. The plot shows kinetic and potential energy trading back
-and forth endlessly while their **sum stays flat**: that exchange *is* the orbit.
+and forth endlessly while their **sum stays flat**: that exchange *is* the orbit. Inner
+shells come round in about a second and outer ones take four, which puts Kepler's third
+law on display without saying a word about it.
+
+**Then cut the string.** Switch `gravity` off mid-orbit. Almost everyone expects the
+satellites to fly outwards, away from the centre — and they do not. With no force acting,
+each one carries straight on along the *tangent* it already had, exactly as Newton's first
+law says. The trails show it plainly: an arc, then a hard straight line. The orbit was
+never something pushing them out; it was gravity continuously bending a straight line.
+
+The `well strength` slider changes the constant live, so you can wind the well up and watch
+the circles spiral inward, or ease it off and watch them drift out.
 
 ### 4 · Pool table
 
@@ -66,7 +77,7 @@ that, rolling and sliding look exactly the same.
 ## Why the numbers can be trusted
 
 The engine is completely separate from the display and is verified against results you can
-derive by hand. **42 tests**, and these are the ones that matter:
+derive by hand. **44 tests**, and these are the ones that matter:
 
 | Check | Result |
 |---|---|
@@ -74,7 +85,8 @@ derive by hand. **42 tests**, and these are the ones that matter:
 | 1-D elastic collision, four mass ratios up to 1:1000 | matches the closed form to every digit |
 | Glancing blow between equal masses | `90.000000°` |
 | The recorded impulse | equals what the formula shown in the panel predicts |
-| Orbits after 40 s | radius stable to within **5%** |
+| Orbits after 40 s, at three well strengths | radius stable to within **5%** |
+| A satellite after the field is cut | leaves along its tangent to within `0.1%`, at unchanged speed |
 | A gas starting at one single speed | coefficient of variation 0.35–0.7 (Rayleigh predicts 0.523) |
 | Momentum at `e` = 0, 0.35, 0.8, 1 | conserved in all four cases |
 
@@ -112,7 +124,7 @@ npm run dev        # http://localhost:5173
 ```
 
 ```bash
-npm test           # 42 tests, ~1.5 s
+npm test           # 44 tests, ~4 s
 npm run build      # to dist/
 ```
 

@@ -127,6 +127,74 @@ describe("gravity", () => {
     expect(Math.abs(world.energyDrift ?? 1)).toBeLessThan(0.02);
   });
 
+  it("sends bodies off along the tangent when the field is cut", () => {
+    // The claim the lab makes in so many words: with no force acting, a body
+    // carries straight on along the tangent it already had. Almost everyone
+    // expects it to fly radially outward instead, so this is worth pinning.
+    // One satellite on one shell: a body cutting straight across a populated
+    // system would eventually strike another, and a collision is precisely the
+    // force this check is trying to rule out.
+    const lab = gravity as unknown as { shells: number; perShell: number };
+    const [shells, perShell] = [lab.shells, lab.perShell];
+    lab.shells = 1;
+    lab.perShell = 1;
+    const world = build(gravity, 8, 4.2);
+    lab.shells = shells;
+    lab.perShell = perShell;
+
+    const cut = gravity.toggles!(world, host).find((t) => t.id === "gravity")!;
+    const star = world.bodies.find((body) => body.isStatic)!;
+    const satellite = world.bodies.filter((body) => !body.isStatic)[0]!;
+
+    run(gravity, world, 1.5);
+    const cutPosition = satellite.position;
+    const cutVelocity = satellite.velocity;
+    const radial = cutPosition.sub(star.position).normalized();
+
+    // In a circular orbit the velocity is perpendicular to the radius.
+    expect(Math.abs(cutVelocity.normalized().dot(radial))).toBeLessThan(0.06);
+
+    cut.set(false);
+    // Walls off for this stretch: a body that bounces has had a force applied
+    // to it, which is exactly what the check is trying to rule out.
+    world.params.walls = false;
+    run(gravity, world, 0.5);
+    cut.set(true);
+
+    const travelled = satellite.position.sub(cutPosition);
+    // It went where its velocity was already pointing…
+    expect(travelled.normalized().dot(cutVelocity.normalized())).toBeGreaterThan(0.999);
+    // …and its speed never changed, because nothing acted on it.
+    expect(satellite.speed).toBeCloseTo(cutVelocity.length, 6);
+    // The distance from the star still grows — but only because a straight
+    // line departs from a circle, not because anything pushed it outward.
+    expect(satellite.position.distanceTo(star.position)).toBeGreaterThan(
+      cutPosition.distanceTo(star.position),
+    );
+    expect(world.collisions).toBe(0);
+  });
+
+  it("scales the well strength without breaking the orbits", () => {
+    const lab = gravity as unknown as { strength: number };
+    for (const strength of [0.5, 1, 2]) {
+      lab.strength = strength;
+      const world = build(gravity, 8, 4.2);
+      const star = world.bodies.find((body) => body.isStatic)!;
+      const satellites = world.bodies.filter((body) => !body.isStatic);
+      const launch = satellites.map((body) => body.position.distanceTo(star.position));
+
+      run(gravity, world, 20);
+
+      let worst = 0;
+      satellites.forEach((body, index) => {
+        const now = body.position.distanceTo(star.position);
+        worst = Math.max(worst, Math.abs(now - launch[index]!) / launch[index]!);
+      });
+      expect(worst, `strength ${strength}`).toBeLessThan(0.05);
+    }
+    lab.strength = 1;
+  });
+
   it("completes at least one full lap", () => {
     const world = build(gravity, 8, 4.2);
     const star = world.bodies.find((body) => body.isStatic)!;

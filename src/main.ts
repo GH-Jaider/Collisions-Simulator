@@ -163,7 +163,7 @@ class Application implements LabHost {
     this.readout.replaceChildren(...this.panels.map((panel) => panel.element));
     for (const panel of this.panels) panel.update();
 
-    this.buildToggles(lab.toggles?.() ?? []);
+    this.buildToggles(lab.toggles?.(this.world, this) ?? []);
     this.resume();
   }
 

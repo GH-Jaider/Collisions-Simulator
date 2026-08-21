@@ -43,6 +43,12 @@ export interface Lab {
   annotate?(renderer: Renderer, world: World, pointer: PointerState): void;
   /** Readout panels, built once when the lab is selected. */
   panels(world: World, host: LabHost): Panel[];
-  /** Switches offered in the console. */
-  toggles?(): Toggle[];
+  /**
+   * Switches offered in the console.
+   *
+   * Given the world because a switch that changes the simulation has to take
+   * effect on the spot; deferring it to the next frame leaves a visible kink
+   * in the motion at any appreciable acceleration.
+   */
+  toggles?(world: World, host: LabHost): Toggle[];
 }
