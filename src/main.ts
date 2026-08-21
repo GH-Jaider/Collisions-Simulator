@@ -31,7 +31,8 @@ class Application implements LabHost {
   private readonly scaleNote = query<HTMLElement>("#scale-note");
   private readonly playButton = query<HTMLButtonElement>("#play");
   private readonly playLabel = query<HTMLElement>("#play-label");
-  private readonly playIcon = query<SVGUseElement>("#play use");
+  private readonly playGlyph = query<HTMLElement>("#play-glyph");
+  private readonly statusState = query<HTMLElement>("#status-state");
   private readonly aboutDialog = query<HTMLDialogElement>("#about");
   private readonly aboutContent = query<HTMLElement>("#about-content");
 
@@ -92,7 +93,7 @@ class Application implements LabHost {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "rate-option";
-      button.textContent = rate === 1 ? "1×" : `${rate}×`;
+      button.textContent = rate === 1 ? "1x" : `${rate}x`;
       button.addEventListener("click", () => {
         this.rate = rate;
         this.syncRates();
@@ -226,8 +227,10 @@ class Application implements LabHost {
   }
 
   private syncTransport(): void {
-    this.playLabel.textContent = this.paused ? "Play" : "Pause";
-    this.playIcon.setAttribute("href", this.paused ? "#icon-play" : "#icon-pause");
+    this.playLabel.textContent = this.paused ? "play" : "pause";
+    this.playGlyph.textContent = this.paused ? "▶" : "❚❚";
+    this.statusState.textContent = this.paused ? "paused" : "running";
+    this.statusState.dataset["state"] = this.paused ? "paused" : "running";
   }
 
   // -- pointer ---------------------------------------------------------

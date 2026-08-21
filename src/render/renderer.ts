@@ -19,9 +19,9 @@ export interface VectorStyle {
   width?: number;
 }
 
-const GRID_MINOR = "rgba(150, 170, 200, 0.045)";
-const GRID_MAJOR = "rgba(150, 170, 200, 0.1)";
-const TICK_TEXT = "rgba(120, 138, 166, 0.75)";
+const GRID_DOT = "rgba(150, 160, 205, 0.3)";
+const GRID_MAJOR = "rgba(150, 160, 205, 0.11)";
+const TICK_TEXT = "rgba(120, 128, 160, 0.8)";
 
 /**
  * Draws the world onto a 2-D canvas.
@@ -93,7 +93,7 @@ export class Renderer {
 
   begin(): void {
     const { ctx } = this;
-    ctx.fillStyle = "#080b13";
+    ctx.fillStyle = "#0c0c12";
     ctx.fillRect(0, 0, this.cssWidth, this.cssHeight);
     this.drawGraticule();
   }
@@ -102,48 +102,51 @@ export class Renderer {
    * A blueprint grid with a ruler along two edges. Spacing adapts so the minor
    * division never collapses into a solid wash on a small screen.
    */
+  /**
+   * A lattice of dots at the minor intersections with hairlines on the
+   * majors -- a terminal's cell grid rather than engineering graph paper.
+   * Spacing adapts so the dots never crowd into a solid wash.
+   */
   private drawGraticule(): void {
     const { ctx, scale } = this;
     const major = chooseMajorSpacing(scale);
-    const minor = major / 5;
+    const minor = major / 4;
 
     ctx.save();
     ctx.lineWidth = 1;
 
     ctx.beginPath();
-    for (let m = minor; m < this.worldWidth; m += minor) {
-      const px = Math.round(this.x(m)) + 0.5;
+    for (let mx = major; mx < this.worldWidth; mx += major) {
+      const px = Math.round(this.x(mx)) + 0.5;
       ctx.moveTo(px, 0);
       ctx.lineTo(px, this.cssHeight);
     }
-    for (let m = minor; m < this.worldHeight; m += minor) {
-      const py = Math.round(this.x(m)) + 0.5;
-      ctx.moveTo(0, py);
-      ctx.lineTo(this.cssWidth, py);
-    }
-    ctx.strokeStyle = GRID_MINOR;
-    ctx.stroke();
-
-    ctx.beginPath();
-    for (let m = major; m < this.worldWidth; m += major) {
-      const px = Math.round(this.x(m)) + 0.5;
-      ctx.moveTo(px, 0);
-      ctx.lineTo(px, this.cssHeight);
-    }
-    for (let m = major; m < this.worldHeight; m += major) {
-      const py = Math.round(this.x(m)) + 0.5;
+    for (let my = major; my < this.worldHeight; my += major) {
+      const py = Math.round(this.x(my)) + 0.5;
       ctx.moveTo(0, py);
       ctx.lineTo(this.cssWidth, py);
     }
     ctx.strokeStyle = GRID_MAJOR;
     ctx.stroke();
 
+    // Drawn as one path of tiny rectangles: a fill of many small paths is far
+    // cheaper than an arc per dot, and at this size they read the same.
+    ctx.beginPath();
+    for (let my = minor; my < this.worldHeight; my += minor) {
+      const py = Math.round(this.x(my));
+      for (let mx = minor; mx < this.worldWidth; mx += minor) {
+        ctx.rect(Math.round(this.x(mx)), py, 1, 1);
+      }
+    }
+    ctx.fillStyle = GRID_DOT;
+    ctx.fill();
+
     ctx.fillStyle = TICK_TEXT;
-    ctx.font = '10px "IBM Plex Mono", monospace';
+    ctx.font = '10px "JetBrains Mono", monospace';
     ctx.textBaseline = "alphabetic";
-    // The scale note is pinned to the bottom-right, so the ruler stops short
-    // of it rather than printing underneath.
-    const rulerLimit = this.cssWidth - 108;
+    // The scale note sits over the bottom-right, so the ruler stops short of
+    // it rather than printing underneath.
+    const rulerLimit = this.cssWidth - 104;
     for (let m = major; m < this.worldWidth; m += major) {
       const px = this.x(m);
       if (px + 4 > rulerLimit) break;
@@ -188,72 +191,71 @@ export class Renderer {
     const cx = this.x(body.position.x);
     const cy = this.x(body.position.y);
     const r = Math.max(1.5, body.radius * scale);
-    const opacity = style.ghost ? 0.26 : 1;
 
     ctx.save();
-    ctx.globalAlpha = opacity;
+    ctx.globalAlpha = style.ghost ? 0.22 : 1;
 
-    if (!style.ghost) {
-      // A soft bloom underneath sells the body as something emitting light
-      // rather than a flat sticker on the grid.
-      ctx.shadowColor = alpha(body.color, 0.5);
-      ctx.shadowBlur = r * 0.9;
-    }
-
-    // Key light from the upper left, the same convention the whole scene uses.
-    const gradient = ctx.createRadialGradient(
-      cx - r * 0.36,
-      cy - r * 0.4,
-      r * 0.04,
-      cx,
-      cy,
-      r * 1.02,
-    );
-    gradient.addColorStop(0, lighten(body.color, 0.62));
-    gradient.addColorStop(0.42, body.color);
-    gradient.addColorStop(1, darken(body.color, 0.5));
-
+    // A flat fill under a brighter rim. Shading a sphere would be the wrong
+    // idiom here: a terminal has no light source, and the ring is what makes
+    // a filled cell read as a distinct body against its neighbours.
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.fillStyle = gradient;
+    ctx.fillStyle = darken(body.color, 0.42);
     ctx.fill();
-    ctx.shadowBlur = 0;
 
-    if (!style.ghost && r > 5) {
-      // A rim on the shadow side reads as bounced light and keeps overlapping
-      // bodies from merging into one blob.
+    if (r > 2.2) {
       ctx.beginPath();
-      ctx.arc(cx, cy, r - 0.6, Math.PI * 0.15, Math.PI * 0.95);
-      ctx.strokeStyle = alpha(body.color, 0.55);
-      ctx.lineWidth = 1.2;
+      ctx.arc(cx, cy, r - 0.75, 0, Math.PI * 2);
+      ctx.strokeStyle = body.color;
+      ctx.lineWidth = 1.5;
       ctx.stroke();
+    } else {
+      ctx.fillStyle = body.color;
+      ctx.fill();
     }
 
-    if (body.spin !== 0 && r > 7) {
+    if (body.spin !== 0 && r > 6) {
       // A mark that turns with the body; without it, rolling and sliding look
       // exactly the same.
-      const mark = r * 0.5;
+      const mark = r * 0.52;
       ctx.beginPath();
-      ctx.arc(cx + Math.cos(body.angle) * mark, cy + Math.sin(body.angle) * mark, Math.max(1, r * 0.11), 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(6, 8, 14, 0.5)";
+      ctx.arc(
+        cx + Math.cos(body.angle) * mark,
+        cy + Math.sin(body.angle) * mark,
+        Math.max(1, r * 0.13),
+        0,
+        Math.PI * 2,
+      );
+      ctx.fillStyle = lighten(body.color, 0.55);
       ctx.fill();
     }
 
     if (style.highlight) {
-      ctx.beginPath();
-      ctx.arc(cx, cy, r + 4, 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.72)";
+      // Selection as a bracketed cell, the terminal way of marking a target.
+      const reach = r + 4;
+      const arm = Math.max(3, r * 0.42);
+      ctx.strokeStyle = "#ffffff";
       ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      for (const [sx, sy] of [
+        [-1, -1],
+        [1, -1],
+        [-1, 1],
+        [1, 1],
+      ] as const) {
+        ctx.moveTo(cx + sx * reach, cy + sy * reach - sy * arm);
+        ctx.lineTo(cx + sx * reach, cy + sy * reach);
+        ctx.lineTo(cx + sx * reach - sx * arm, cy + sy * reach);
+      }
       ctx.stroke();
     }
 
     const label = style.label ?? body.label;
-    if (label && r > 9) {
-      ctx.globalAlpha = opacity;
-      ctx.font = `600 ${Math.min(14, r * 0.82)}px "Bricolage Grotesque", sans-serif`;
+    if (label && r > 8) {
+      ctx.font = `700 ${Math.min(12, r * 0.8)}px "JetBrains Mono", monospace`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillStyle = "rgba(6, 8, 14, 0.66)";
+      ctx.fillStyle = lighten(body.color, 0.7);
       ctx.fillText(label, cx, cy + r * 0.04);
     }
 
@@ -305,7 +307,7 @@ export class Renderer {
     ctx.fill();
 
     if (style.label && lengthPx > 26) {
-      ctx.font = 'italic 13px "Newsreader", serif';
+      ctx.font = '600 11px "JetBrains Mono", monospace';
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       const offsetX = Math.cos(angle + Math.PI / 2) * 11;
@@ -331,7 +333,7 @@ export class Renderer {
     ctx.save();
     ctx.beginPath();
     ctx.arc(this.x(position.x), this.x(position.y), radius, 0, Math.PI * 2);
-    ctx.strokeStyle = `rgba(243, 181, 69, ${fade * fade * 0.3})`;
+    ctx.strokeStyle = `rgba(255, 200, 97, ${fade * fade * 0.42})`;
     ctx.lineWidth = 1;
     ctx.stroke();
     ctx.restore();
@@ -371,7 +373,7 @@ export class Renderer {
   drawNote(text: string, x: number, y: number, color = "rgba(139, 155, 180, 0.9)"): void {
     const { ctx } = this;
     ctx.save();
-    ctx.font = '11px "IBM Plex Mono", monospace';
+    ctx.font = '11px "JetBrains Mono", monospace';
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
     ctx.fillStyle = color;

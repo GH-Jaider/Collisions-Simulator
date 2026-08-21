@@ -2,9 +2,9 @@
 
 **An interactive rigid-body physics laboratory, in the browser.**
 
-Not an animation of balls bouncing — an instrument. You set the experiment up with real
-numbers (kilograms, metres, seconds), launch it, and the impact is captured with **the
-impulse equation solved using your own values**.
+Not an animation of balls bouncing — an instrument, dressed as a terminal. You set the
+experiment up with real numbers (kilograms, metres, seconds), launch it, and the impact is
+captured with **the impulse equation solved using your own values**.
 
 ### → [Open the laboratory](https://gh-jaider.github.io/Collisions-Simulator/)
 
@@ -123,6 +123,24 @@ Deployment is automatic: every push to `main` runs the tests and publishes to Gi
 > has a different name, change `base` in `vite.config.ts`.
 
 The whole site is **18 kB of gzipped JavaScript** with no runtime dependencies.
+
+## About the interface
+
+The visual language is borrowed wholesale from TUIs — Charm's tooling, `sampler`, a
+well-made curses app — which turns out to suit an instrument better than a conventional
+web layout does. That means a few firm commitments:
+
+- One monospace face for everything, the maths included. A terminal has no second font,
+  and the even rhythm is most of what makes the look.
+- Every box is a one-pixel rule with its title cut into the top border, the way a
+  box-drawing character set renders `┌─ TITLE ─────┐`.
+- Square corners, flat fills, no shadows and no gradients. A cell either has a colour or
+  it does not — which is also why the bodies are drawn as flat discs with a bright rim
+  rather than shaded spheres.
+- Selection is inverse video, never a soft glow.
+
+No ASCII art, though: the simulation is drawn with real geometry at full resolution. The
+aesthetic is the chrome, not the physics.
 
 ## Using the physics on its own
 

@@ -9,9 +9,9 @@ import { seeded } from "./layout";
 import type { Lab, LabHost, PointerState, Toggle } from "./types";
 
 const RACK_COLORS = [
-  "#f3b545", "#57cff0", "#f4736f", "#a99bf5", "#63e0ab",
-  "#e88b3a", "#6fb3f2", "#d95d7a", "#8ad46f", "#c7a2f7",
-  "#f0c96b", "#4fbfd8", "#ef6f6b", "#9d8cf0", "#5fd3a0",
+  "#ffc861", "#4fe3d2", "#ff5fa2", "#a98bff", "#45dd8b",
+  "#ff9f5f", "#6fa8ff", "#ff6b8f", "#cdfa54", "#c39bff",
+  "#ffd873", "#5fd8e8", "#ff7a7a", "#8f7bff", "#5fe0a8",
 ];
 
 /**
@@ -93,7 +93,7 @@ export class TableLab implements Lab {
         velocity: new Vec2(this.power, (this.random() - 0.5) * 0.05),
         radius,
         mass: 0.17,
-        color: "#f7f7f2",
+        color: "#f2f2f8",
         label: "",
       }),
     );

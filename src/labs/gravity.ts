@@ -9,7 +9,7 @@ import { controlsPanel, metricsPanel, type Panel } from "../ui/panels";
 import { seeded } from "./layout";
 import type { Lab, LabHost, PointerState, Toggle } from "./types";
 
-const SHELL_COLORS = ["#f3b545", "#63e0ab", "#57cff0", "#a99bf5", "#f4736f"];
+const SHELL_COLORS = ["#ffc861", "#45dd8b", "#4fe3d2", "#a98bff", "#ff5fa2"];
 /**
  * Satellites are near-massless on purpose.
  *
@@ -82,7 +82,7 @@ export class GravityLab implements Lab {
         position: centre,
         radius: starRadius,
         mass: this.starMass,
-        color: "#ffd479",
+        color: "#ffd873",
         isStatic: true,
         label: "★",
       }),
@@ -215,11 +215,11 @@ export class GravityLab implements Lab {
     const energy = chartPanel(
       "energy exchange",
       [
-        { label: "kinetic", color: "#57cff0", sample: () => world.kineticEnergy },
-        { label: "potential", color: "#f4736f", sample: () => world.potentialEnergy },
-        { label: "total", color: "#63e0ab", sample: () => world.totalEnergy },
+        { label: "kinetic", color: "#4fe3d2", sample: () => world.kineticEnergy },
+        { label: "potential", color: "#ff5fa2", sample: () => world.potentialEnergy },
+        { label: "total", color: "#45dd8b", sample: () => world.totalEnergy },
       ],
-      { includeZero: false, note: "the sum is flat" },
+      { includeZero: false, note: "sum is flat" },
     );
 
     const state = metricsPanel("state", [

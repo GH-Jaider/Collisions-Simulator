@@ -9,7 +9,7 @@ import { controlsPanel, metricsPanel, type Panel } from "../ui/panels";
 import { scatter, seeded } from "./layout";
 import type { Lab, LabHost, PointerState, Toggle } from "./types";
 
-const PALETTE = ["#57cff0", "#63e0ab", "#a99bf5", "#f3b545", "#f4736f", "#6fb3f2"];
+const PALETTE = ["#4fe3d2", "#45dd8b", "#a98bff", "#ffc861", "#ff5fa2", "#6fa8ff"];
 
 /**
  * A two-dimensional ideal gas.
@@ -179,15 +179,15 @@ export class GasLab implements Lab {
     const chart = chartPanel(
       "energy and momentum",
       [
-        { label: "kinetic energy", color: "#63e0ab", sample: () => world.kineticEnergy },
-        { label: "|momentum|", color: "#a99bf5", sample: () => world.totalMomentum.length },
+        { label: "kinetic energy", color: "#45dd8b", sample: () => world.kineticEnergy },
+        { label: "|momentum|", color: "#a98bff", sample: () => world.totalMomentum.length },
       ],
-      { note: "must be flat at e = 1" },
+      { note: "flat at e=1" },
     );
 
     const distribution = histogramPanel("speed distribution", {
       values: () => world.speeds(),
-      color: "#57cff0",
+      color: "#4fe3d2",
       theoryLabel: "Maxwell–Boltzmann",
       theory: () => {
         const speeds = world.speeds();

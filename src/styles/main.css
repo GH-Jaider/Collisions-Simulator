@@ -1,53 +1,51 @@
 /* =========================================================================
-   Colisiones — laboratory instrument
+   Collisions — a terminal user interface that happens to run in a browser
    -------------------------------------------------------------------------
-   The visual language is borrowed from measuring equipment and drafting: a
-   blueprint graticule, hairline rules, registration marks at the corners of
-   the viewport, and figures set in tabular monospace so a changing value
-   never shifts the ones beside it.
+   The whole visual language is borrowed from TUIs: Charm's tooling, sampler,
+   the shape of a well-made curses app. That means a few firm commitments.
 
-   Three typefaces, each with a job:
-     Bricolage Grotesque — interface and headings
-     IBM Plex Mono       — every measured quantity
-     Newsreader italic   — equations, following the convention that physical
-                           variables are set in a serif italic
+     · One monospace face for everything, including the maths. A terminal has
+       no second font, and the even rhythm is most of what makes the look.
+     · Every box is drawn with a one-pixel rule and its title cut into the top
+       border, the way a box-drawing character set renders `┌─ TITLE ─────┐`.
+     · Square corners, flat fills, no shadows and no gradients. A cell either
+       has a colour or it does not.
+     · Selection is inverse video — the terminal idiom — never a soft glow.
+     · Saturated accents against near-black, used sparingly enough that each
+       one still means something.
    ========================================================================= */
 
 :root {
-  --ink-900: #06080e;
-  --ink-850: #080b13;
-  --ink-800: #0b0f1a;
-  --ink-750: #0e1421;
-  --ink-700: #131b2b;
-  --ink-600: #1b2537;
+  --bg: #0c0c12;
+  --bg-panel: #111119;
+  --bg-raised: #1a1a24;
+  --bg-inset: #08080d;
 
-  --line: rgba(150, 170, 200, 0.11);
-  --line-mid: rgba(150, 170, 200, 0.2);
-  --line-strong: rgba(150, 170, 200, 0.36);
+  --line: #2b2b39;
+  --line-bright: #45455a;
 
-  --text: #dde5f2;
-  --text-dim: #8b9bb4;
-  --text-faint: #5b6a82;
+  --text: #e6e6f0;
+  --text-dim: #9494ab;
+  --text-faint: #61617a;
 
-  --amber: #f3b545;
-  --amber-soft: rgba(243, 181, 69, 0.14);
-  --cyan: #57cff0;
-  --cyan-soft: rgba(87, 207, 240, 0.13);
-  --rose: #f4736f;
-  --mint: #63e0ab;
-  --violet: #a99bf5;
+  /* Charm-adjacent accents: hot pink leads, purple and cyan support. */
+  --pink: #ff5fa2;
+  --purple: #a98bff;
+  --cyan: #4fe3d2;
+  --lime: #cdfa54;
+  --amber: #ffc861;
+  --green: #45dd8b;
+  --red: #ff6b6b;
+  --blue: #6fa8ff;
 
-  --ok: #63e0ab;
-  --warn: #f3b545;
+  --ok: var(--green);
+  --warn: var(--amber);
 
-  --shadow-lift: 0 1px 0 rgba(255, 255, 255, 0.045) inset, 0 8px 30px -12px rgba(0, 0, 0, 0.9);
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", "Cascadia Mono",
+    Menlo, Consolas, monospace;
 
-  --font-ui: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
-  --font-math: "Newsreader", ui-serif, Georgia, serif;
-
-  --rail: 336px;
-  --radius: 3px;
+  --rail: 340px;
+  --cell: 1.55;
 }
 
 *,
@@ -63,96 +61,134 @@ body {
 
 body {
   margin: 0;
-  background:
-    radial-gradient(1200px 700px at 18% -10%, rgba(87, 207, 240, 0.06), transparent 60%),
-    radial-gradient(900px 600px at 100% 0%, rgba(243, 181, 69, 0.045), transparent 55%),
-    var(--ink-900);
+  background: var(--bg);
   color: var(--text);
-  font-family: var(--font-ui);
-  font-size: 15px;
-  line-height: 1.5;
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: var(--cell);
+  font-variant-ligatures: none;
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
 }
 
-/* A faint film of noise stops the large dark fields from banding and gives
-   the whole surface the texture of a printed instrument panel. */
+/* A very faint dot lattice, standing in for the cell grid of a terminal. */
 .grain {
   position: fixed;
   inset: 0;
   z-index: 9999;
   pointer-events: none;
-  opacity: 0.28;
-  mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml;utf8,\
-<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'>\
-<filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/>\
-<feColorMatrix type='saturate' values='0'/></filter>\
-<rect width='140' height='140' filter='url(%23n)' opacity='0.5'/></svg>");
+  opacity: 0.5;
+  background-image: radial-gradient(circle at 1px 1px, rgba(150, 150, 190, 0.05) 1px, transparent 0);
+  background-size: 4px 4px;
 }
 
 button {
   font: inherit;
   color: inherit;
   cursor: pointer;
+  border-radius: 0;
+}
+
+::selection {
+  background: var(--pink);
+  color: var(--bg);
+}
+
+/* ------------------------------------------------------------- the box -- */
+/* One rule, and a title chip that paints over it. The chip carries the page
+   background so the border appears to break around the label, which is
+   exactly what a box-drawing title looks like in a terminal. */
+
+.box-title,
+.panel-title {
+  position: absolute;
+  top: 0;
+  left: 9px;
+  transform: translateY(-50%);
+  padding: 0 6px;
+  background: var(--bg);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--pink);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.box-note,
+.panel-note {
+  position: absolute;
+  top: 0;
+  right: 9px;
+  max-width: 52%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transform: translateY(-50%);
+  padding: 0 6px;
+  background: var(--bg);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 2;
 }
 
 /* ---------------------------------------------------------------- shell -- */
 
 .frame {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
   height: 100dvh;
-  /* Grid and flex items default to a min size of their content, so without
-     this a wide row silently pushes the whole page sideways instead of
-     letting its own overflow rule take over. */
   min-width: 0;
 }
 
 .masthead {
   display: flex;
   align-items: center;
-  gap: 28px;
+  gap: 20px;
   min-width: 0;
-  padding: 0 22px;
-  height: 58px;
+  padding: 0 14px;
+  height: 42px;
   border-bottom: 1px solid var(--line);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.024), transparent);
 }
 
 .identity {
   display: flex;
-  align-items: baseline;
-  gap: 11px;
+  align-items: center;
+  gap: 10px;
   flex: none;
   min-width: 0;
 }
 
+/* Inverse video, the way a TUI names itself in its own title bar. */
 .wordmark {
-  font-size: 19px;
-  font-weight: 800;
-  letter-spacing: -0.028em;
-  font-variation-settings: "opsz" 40;
+  background: var(--pink);
+  color: var(--bg);
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
 }
 
 .subtitle {
-  font-family: var(--font-mono);
   font-size: 10.5px;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.11em;
   text-transform: uppercase;
   color: var(--text-faint);
 }
 
-@media (max-width: 900px) {
+@media (max-width: 940px) {
   .subtitle {
     display: none;
   }
 }
 
-/* Channel selector, in the manner of instrument input buttons. */
 .channels {
   display: flex;
-  gap: 2px;
+  gap: 4px;
   flex: 1;
   min-width: 0;
   overflow-x: auto;
@@ -165,47 +201,44 @@ button {
 .channel {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   flex: none;
-  padding: 6px 13px;
+  padding: 3px 10px;
   border: 1px solid transparent;
-  border-radius: var(--radius);
   background: none;
   color: var(--text-dim);
-  font-size: 13.5px;
-  letter-spacing: -0.01em;
-  transition:
-    color 0.16s,
-    background 0.16s,
-    border-color 0.16s;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  transition: color 0.1s, background 0.1s, border-color 0.1s;
 }
 
 .channel:hover {
   color: var(--text);
-  background: rgba(255, 255, 255, 0.035);
+  border-color: var(--line);
 }
 
 .channel .index {
-  font-family: var(--font-mono);
   font-size: 10px;
   color: var(--text-faint);
-  border: 1px solid var(--line-mid);
-  border-radius: 2px;
-  padding: 0 4px;
-  line-height: 1.45;
-  transition: color 0.16s, border-color 0.16s;
+  transition: color 0.1s;
+}
+
+.channel .index::before {
+  content: "[";
+}
+.channel .index::after {
+  content: "]";
 }
 
 .channel[aria-selected="true"] {
-  color: var(--ink-900);
-  background: var(--amber);
-  border-color: var(--amber);
-  font-weight: 600;
+  background: var(--purple);
+  border-color: var(--purple);
+  color: var(--bg);
+  font-weight: 700;
 }
 
 .channel[aria-selected="true"] .index {
-  color: rgba(6, 8, 14, 0.62);
-  border-color: rgba(6, 8, 14, 0.3);
+  color: rgba(12, 12, 18, 0.62);
 }
 
 .masthead-end {
@@ -216,28 +249,30 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 5px 11px;
-  border: 1px solid var(--line-mid);
-  border-radius: var(--radius);
+  padding: 3px 9px;
+  border: 1px solid var(--line);
   background: none;
   color: var(--text-dim);
-  font-size: 12.5px;
-  transition: color 0.16s, border-color 0.16s, background 0.16s;
+  font-size: 11.5px;
+  transition: color 0.1s, border-color 0.1s, background 0.1s;
 }
 
 .ghost-button:hover {
-  color: var(--text);
-  border-color: var(--line-strong);
-  background: rgba(255, 255, 255, 0.03);
+  color: var(--bg);
+  background: var(--text-dim);
+  border-color: var(--text-dim);
 }
 
 .key-cap {
-  font-family: var(--font-mono);
-  font-size: 10.5px;
   padding: 0 4px;
-  border: 1px solid var(--line-mid);
-  border-radius: 2px;
-  color: var(--text-faint);
+  background: var(--line);
+  color: var(--text);
+  font-size: 10px;
+}
+
+.ghost-button:hover .key-cap {
+  background: var(--bg);
+  color: var(--text);
 }
 
 /* ---------------------------------------------------------------- bench -- */
@@ -254,31 +289,35 @@ button {
   grid-template-rows: auto minmax(0, 1fr) auto;
   min-width: 0;
   min-height: 0;
-  padding: 16px 18px 14px;
-  gap: 12px;
+  padding: 12px 12px 10px 14px;
+  gap: 14px;
 }
 
 .stage-head {
   display: flex;
   align-items: baseline;
-  gap: 16px;
+  gap: 12px;
   flex-wrap: wrap;
-  min-height: 26px;
+  min-height: 20px;
 }
 
 .stage-title {
   margin: 0;
-  font-size: 22px;
-  font-weight: 600;
-  letter-spacing: -0.03em;
-  font-variation-settings: "opsz" 48;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+
+.stage-title::before {
+  content: "▌";
+  color: var(--pink);
+  margin-right: 7px;
 }
 
 .stage-blurb {
   margin: 0;
-  font-family: var(--font-math);
-  font-size: 15px;
-  font-style: italic;
+  font-size: 12px;
   color: var(--text-dim);
   flex: 1 1 240px;
   min-width: 0;
@@ -289,11 +328,16 @@ button {
 .viewport {
   position: relative;
   min-height: 0;
-  border: 1px solid var(--line-mid);
-  border-radius: var(--radius);
-  background: var(--ink-850);
-  overflow: hidden;
-  box-shadow: var(--shadow-lift);
+  border: 1px solid var(--line);
+  /* Matches the canvas fill exactly, so the title chip straddling the top
+     border has the same ground above and below it. */
+  background: var(--bg);
+  overflow: visible;
+}
+
+.viewport canvas {
+  /* The frame clips the drawing; the box titles sit outside it. */
+  clip-path: inset(0);
 }
 
 .viewport canvas {
@@ -308,100 +352,61 @@ button {
   cursor: grabbing;
 }
 
-/* Registration marks, as on a drawing that expects to be measured. */
-.corner {
-  position: absolute;
-  width: 11px;
-  height: 11px;
-  pointer-events: none;
-  border-color: var(--line-strong);
-  border-style: solid;
-  border-width: 0;
-}
-.corner.tl { top: 6px; left: 6px; border-top-width: 1px; border-left-width: 1px; }
-.corner.tr { top: 6px; right: 6px; border-top-width: 1px; border-right-width: 1px; }
-.corner.bl { bottom: 6px; left: 6px; border-bottom-width: 1px; border-left-width: 1px; }
-.corner.br { bottom: 6px; right: 6px; border-bottom-width: 1px; border-right-width: 1px; }
-
-.scale-note {
-  position: absolute;
-  right: 10px;
-  bottom: 8px;
-  padding: 2px 6px;
-  border-radius: 2px;
-  /* Sits over the ruler, so it carries its own ground to stay readable. */
-  background: rgba(8, 11, 19, 0.86);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  color: var(--text-faint);
-  pointer-events: none;
-}
-
 /* -------------------------------------------------------------- console -- */
 
 .console {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 14px;
   flex-wrap: wrap;
   min-width: 0;
-  padding: 9px 12px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.022), transparent), var(--ink-800);
 }
 
 .transport {
   display: flex;
-  gap: 6px;
+  gap: 4px;
 }
 
 .transport-button {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 6px 12px;
-  border: 1px solid var(--line-mid);
-  border-radius: var(--radius);
-  background: var(--ink-700);
+  padding: 3px 10px;
+  border: 1px solid var(--line);
+  background: none;
   color: var(--text-dim);
-  font-size: 12.5px;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  font-size: 11.5px;
+  transition: color 0.1s, border-color 0.1s, background 0.1s;
 }
 
-.transport-button svg {
-  width: 12px;
-  height: 12px;
-  fill: currentColor;
+.transport-button .glyph {
+  font-size: 9px;
+  letter-spacing: -0.05em;
 }
 
 .transport-button:hover {
   color: var(--text);
-  border-color: var(--line-strong);
-  background: var(--ink-600);
+  border-color: var(--line-bright);
 }
 
 .transport-button.primary {
-  background: var(--cyan-soft);
-  border-color: rgba(87, 207, 240, 0.34);
+  border-color: var(--cyan);
   color: var(--cyan);
-  min-width: 104px;
+  min-width: 96px;
 }
 
 .transport-button.primary:hover {
-  background: rgba(87, 207, 240, 0.2);
+  background: var(--cyan);
+  color: var(--bg);
 }
 
 .rate {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
 }
 
-.rate-label,
-.toggle-group-label {
-  font-family: var(--font-mono);
+.rate-label {
   font-size: 10px;
   letter-spacing: 0.13em;
   text-transform: uppercase;
@@ -410,20 +415,17 @@ button {
 
 .rate-options {
   display: flex;
-  border: 1px solid var(--line-mid);
-  border-radius: var(--radius);
-  overflow: hidden;
+  border: 1px solid var(--line);
 }
 
 .rate-option {
-  padding: 5px 10px;
+  padding: 3px 8px;
   border: none;
   border-right: 1px solid var(--line);
-  background: var(--ink-750);
+  background: none;
   color: var(--text-faint);
-  font-family: var(--font-mono);
-  font-size: 11.5px;
-  transition: color 0.15s, background 0.15s;
+  font-size: 11px;
+  transition: color 0.1s, background 0.1s;
 }
 .rate-option:last-child {
   border-right: none;
@@ -432,53 +434,50 @@ button {
   color: var(--text);
 }
 .rate-option[aria-pressed="true"] {
-  background: var(--amber-soft);
-  color: var(--amber);
+  background: var(--amber);
+  color: var(--bg);
+  font-weight: 700;
 }
 
 .toggles {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   flex-wrap: wrap;
   margin-left: auto;
 }
 
+/* Checkbox as a terminal would draw it: a bracketed cell that fills in. */
 .toggle {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 5px 11px;
-  border: 1px solid var(--line-mid);
-  border-radius: var(--radius);
+  gap: 6px;
+  padding: 3px 9px;
+  border: 1px solid transparent;
   background: none;
   color: var(--text-faint);
-  font-size: 12.5px;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  font-size: 11.5px;
+  transition: color 0.1s, border-color 0.1s;
 }
 
 .toggle::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--line-strong);
-  transition: background 0.15s, box-shadow 0.15s;
+  content: "[ ]";
+  color: var(--line-bright);
+  letter-spacing: -0.06em;
 }
 
 .toggle:hover {
   color: var(--text-dim);
-  border-color: var(--line-strong);
+  border-color: var(--line);
 }
 
 .toggle[aria-pressed="true"] {
   color: var(--text);
-  border-color: rgba(99, 224, 171, 0.32);
-  background: rgba(99, 224, 171, 0.08);
+  border-color: var(--line);
 }
 
 .toggle[aria-pressed="true"]::before {
-  background: var(--mint);
-  box-shadow: 0 0 8px rgba(99, 224, 171, 0.75);
+  content: "[■]";
+  color: var(--green);
 }
 
 /* -------------------------------------------------------------- readout -- */
@@ -487,70 +486,57 @@ button {
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 16px 18px 22px 6px;
+  padding: 18px 14px 20px 4px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 18px;
   scrollbar-width: thin;
-  scrollbar-color: var(--line-strong) transparent;
+  scrollbar-color: var(--line-bright) transparent;
 }
 
 .readout::-webkit-scrollbar {
   width: 8px;
 }
 .readout::-webkit-scrollbar-thumb {
-  background: var(--line-mid);
-  border-radius: 4px;
+  background: var(--line);
+}
+.readout::-webkit-scrollbar-thumb:hover {
+  background: var(--line-bright);
 }
 
 .panel {
+  position: relative;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent), var(--ink-800);
-}
-
-.panel-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 9px 12px;
-  border-bottom: 1px solid var(--line);
-}
-
-.panel-title {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-}
-
-.panel-note {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--text-faint);
+  background: var(--bg-panel);
 }
 
 .panel-body {
-  padding: 11px 12px;
+  padding: 12px 11px 10px;
 }
 
-/* Rows of measurements. Values are tabular so nothing shifts as they run. */
+/* Rows of measurements, leader-dotted so the eye tracks across the gap the
+   way it does down a printed table of figures. */
 .metrics {
   display: grid;
-  gap: 3px;
+  gap: 2px;
 }
 
 .metric {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(10px, 1fr) auto;
   align-items: baseline;
-  gap: 10px;
+  gap: 6px;
+}
+
+.metric::after {
+  content: "";
+  grid-column: 2;
+  border-bottom: 1px dotted var(--line);
+  transform: translateY(-3px);
 }
 
 .metric-label {
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--text-dim);
   white-space: nowrap;
   overflow: hidden;
@@ -558,15 +544,13 @@ button {
 }
 
 .metric-label em {
-  font-family: var(--font-math);
-  font-style: italic;
-  font-size: 14px;
+  font-style: normal;
   color: var(--text);
 }
 
 .metric-value {
-  font-family: var(--font-mono);
-  font-size: 12.5px;
+  grid-column: 3;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
   color: var(--text);
   white-space: nowrap;
@@ -574,7 +558,7 @@ button {
 
 .metric-value .unit {
   color: var(--text-faint);
-  font-size: 10.5px;
+  font-size: 10px;
   margin-left: 3px;
 }
 
@@ -588,87 +572,94 @@ button {
   color: var(--text-faint);
 }
 
-/* A value that just changed gets a brief wash, so the eye is pulled to the
-   quantity that moved rather than having to scan the whole column. */
+/* A changed value inverts for a moment: the terminal way of drawing attention,
+   and far more legible at this size than a fade. */
 @keyframes value-touched {
-  from {
-    background: rgba(243, 181, 69, 0.22);
+  0%,
+  55% {
+    background: var(--amber);
+    color: var(--bg);
   }
-  to {
+  100% {
     background: transparent;
   }
 }
 
 .metric-value.touched {
-  animation: value-touched 0.5s ease-out;
-  border-radius: 2px;
+  animation: value-touched 0.45s steps(2, end);
 }
 
 /* ------------------------------------------------------------ equations -- */
+/* Monospace maths. A terminal has no italic serif, and the fixed advance
+   actually helps here: the substituted line sits directly under the symbolic
+   one, term for term. */
 
 .equation {
-  font-family: var(--font-math);
-  font-size: 17px;
-  line-height: 2;
+  font-size: 12.5px;
+  line-height: 1.9;
   color: var(--text);
   text-align: center;
-  padding: 4px 0 2px;
+  padding: 2px 0;
+  white-space: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.equation::-webkit-scrollbar {
+  display: none;
 }
 
 .equation .var {
-  font-style: italic;
+  color: var(--cyan);
 }
 
 .equation .sub {
-  font-size: 0.68em;
-  vertical-align: -0.28em;
-  font-style: normal;
-  letter-spacing: 0.02em;
+  font-size: 0.8em;
+  vertical-align: -0.2em;
+  color: var(--text-faint);
 }
 
 .equation .op {
   color: var(--text-faint);
-  padding: 0 0.18em;
-  font-style: normal;
+  padding: 0 0.12em;
 }
 
 .equation .num {
-  font-family: var(--font-mono);
-  font-size: 0.8em;
-  font-variant-numeric: tabular-nums;
-  font-style: normal;
   color: var(--amber);
+  font-variant-numeric: tabular-nums;
 }
 
+/* A ruled fraction, built from a border rather than a glyph so the rule
+   spans exactly as wide as the longer of the two terms. */
 .equation .frac {
   display: inline-flex;
   flex-direction: column;
   align-items: center;
-  vertical-align: -0.85em;
-  margin: 0 0.22em;
+  vertical-align: -0.8em;
+  margin: 0 0.2em;
 }
 
 .equation .frac > span:first-child {
-  border-bottom: 1px solid var(--line-strong);
-  padding: 0 0.4em 0.1em;
-  line-height: 1.35;
+  border-bottom: 1px solid var(--line-bright);
+  padding: 0 0.45em 0.12em;
+  line-height: 1.4;
 }
 
 .equation .frac > span:last-child {
-  padding: 0.1em 0.4em 0;
-  line-height: 1.35;
+  padding: 0.12em 0.45em 0;
+  line-height: 1.4;
 }
 
 .equation-caption {
-  font-size: 12px;
+  font-size: 10.5px;
   color: var(--text-faint);
   text-align: center;
-  margin-top: 2px;
+  margin-top: 3px;
+  white-space: normal;
 }
 
 .substituted {
-  margin-top: 9px;
-  padding-top: 9px;
+  margin-top: 10px;
+  padding-top: 10px;
   border-top: 1px dashed var(--line);
 }
 
@@ -676,12 +667,13 @@ button {
 
 .control {
   display: grid;
-  gap: 5px;
-  padding: 7px 0;
-  border-bottom: 1px solid var(--line);
+  gap: 3px;
+  padding: 6px 0;
 }
-.control:last-child {
-  border-bottom: none;
+
+.control + .control {
+  border-top: 1px dotted var(--line);
+  padding-top: 8px;
 }
 
 .control-head {
@@ -692,84 +684,76 @@ button {
 }
 
 .control-name {
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--text-dim);
 }
 
 .control-name em {
-  font-family: var(--font-math);
-  font-style: italic;
-  font-size: 14.5px;
-  color: var(--text);
+  font-style: normal;
+  color: var(--cyan);
 }
 
 .control-value {
-  font-family: var(--font-mono);
-  font-size: 12.5px;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
   color: var(--amber);
 }
 
 .control-value .unit {
   color: var(--text-faint);
-  font-size: 10.5px;
+  font-size: 10px;
   margin-left: 3px;
 }
 
+/* A slider drawn as a rail with a block riding it. */
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
-  height: 18px;
+  height: 14px;
   background: none;
-  cursor: pointer;
+  cursor: ew-resize;
 }
 
 input[type="range"]::-webkit-slider-runnable-track {
-  height: 2px;
-  background: var(--line-mid);
-  border-radius: 2px;
+  height: 1px;
+  background: var(--line-bright);
 }
 
 input[type="range"]::-moz-range-track {
-  height: 2px;
-  background: var(--line-mid);
-  border-radius: 2px;
+  height: 1px;
+  background: var(--line-bright);
 }
 
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 13px;
+  width: 9px;
   height: 13px;
-  margin-top: -5.5px;
-  border-radius: 50%;
+  margin-top: -6px;
+  border: none;
+  border-radius: 0;
   background: var(--amber);
-  border: 2px solid var(--ink-800);
-  box-shadow: 0 0 0 1px rgba(243, 181, 69, 0.4);
-  transition: box-shadow 0.15s;
 }
 
 input[type="range"]::-moz-range-thumb {
-  width: 13px;
+  width: 9px;
   height: 13px;
-  border-radius: 50%;
+  border: none;
+  border-radius: 0;
   background: var(--amber);
-  border: 2px solid var(--ink-800);
-  box-shadow: 0 0 0 1px rgba(243, 181, 69, 0.4);
 }
 
 input[type="range"]:hover::-webkit-slider-thumb,
 input[type="range"]:focus-visible::-webkit-slider-thumb {
-  box-shadow: 0 0 0 4px rgba(243, 181, 69, 0.18);
+  background: var(--lime);
 }
 
 .control-ticks {
   display: flex;
   justify-content: space-between;
-  font-family: var(--font-mono);
   font-size: 9.5px;
   color: var(--text-faint);
-  margin-top: -3px;
+  margin-top: -2px;
 }
 
 /* --------------------------------------------------------------- charts -- */
@@ -777,14 +761,14 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
 .chart {
   display: block;
   width: 100%;
-  height: 86px;
+  height: 78px;
 }
 
 .chart-legend {
   display: flex;
-  gap: 14px;
+  gap: 12px;
+  flex-wrap: wrap;
   margin-top: 7px;
-  font-family: var(--font-mono);
   font-size: 10px;
   color: var(--text-faint);
 }
@@ -795,19 +779,26 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
   gap: 5px;
 }
 
+/* A filled cell, not a rounded dot: the legend key a TUI would print. */
 .chart-legend i {
-  width: 10px;
-  height: 2px;
-  border-radius: 1px;
+  width: 8px;
+  height: 8px;
+}
+
+.histogram {
+  display: block;
+  width: 100%;
+  height: 96px;
 }
 
 /* ------------------------------------------------------------ inspector -- */
 
 .inspector-empty {
-  font-size: 12.5px;
+  font-size: 11.5px;
   color: var(--text-faint);
-  line-height: 1.6;
-  padding: 3px 0 5px;
+  line-height: 1.7;
+  padding: 2px 0 4px;
+  margin: 0;
 }
 
 .inspector-empty strong {
@@ -820,12 +811,13 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .impact-body {
   display: grid;
-  gap: 2px;
+  gap: 1px;
+  min-width: 0;
 }
 
 .impact-body.right {
@@ -836,7 +828,7 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12.5px;
+  font-size: 11.5px;
   color: var(--text);
 }
 
@@ -845,14 +837,12 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
 }
 
 .impact-swatch {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
+  width: 8px;
+  height: 8px;
   flex: none;
 }
 
 .impact-velocity {
-  font-family: var(--font-mono);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
   color: var(--text-dim);
@@ -868,39 +858,64 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
 }
 
 .impact-glyph {
-  font-family: var(--font-mono);
-  font-size: 15px;
+  font-size: 12px;
   color: var(--amber);
 }
 
-/* ---------------------------------------------------------- distribution -- */
+/* ------------------------------------------------------------ statusbar -- */
+/* Every well-made TUI ends in a line of key hints. */
 
-.histogram {
-  display: block;
-  width: 100%;
-  height: 104px;
+.statusbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  height: 24px;
+  padding: 0 14px;
+  border-top: 1px solid var(--line);
+  background: var(--bg-panel);
+  font-size: 10.5px;
+  color: var(--text-faint);
+}
+
+.hint b {
+  color: var(--text-dim);
+  font-weight: 500;
+  margin-right: 4px;
+}
+
+.statusbar-end {
+  margin-left: auto;
+  padding: 0 7px;
+  background: var(--green);
+  color: var(--bg);
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.statusbar-end[data-state="paused"] {
+  background: var(--amber);
 }
 
 /* ---------------------------------------------------------------- about -- */
 
 .about {
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius);
-  background: var(--ink-800);
+  border: 1px solid var(--line-bright);
+  border-radius: 0;
+  background: var(--bg-panel);
   color: var(--text);
   padding: 0;
-  max-width: 640px;
-  width: calc(100% - 40px);
-  box-shadow: 0 40px 90px -30px rgba(0, 0, 0, 0.95);
+  max-width: 660px;
+  width: calc(100% - 32px);
 }
 
 .about::backdrop {
-  background: rgba(3, 5, 10, 0.74);
-  backdrop-filter: blur(3px);
+  background: rgba(8, 8, 13, 0.8);
 }
 
 .about-body {
-  padding: 20px 24px 24px;
+  padding: 16px 20px 20px;
 }
 
 .about-body header {
@@ -908,61 +923,71 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
 }
 
 .about-body h2 {
   margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-  letter-spacing: -0.025em;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--pink);
 }
 
 .about-body h3 {
-  margin: 18px 0 6px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.15em;
+  margin: 16px 0 5px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--amber);
+  color: var(--lime);
+}
+
+.about-body h3::before {
+  content: "▌ ";
 }
 
 .about-body p {
-  margin: 0 0 9px;
-  font-size: 13.5px;
-  line-height: 1.65;
-  color: var(--text-dim);
-}
-
-.about-body em {
-  font-family: var(--font-math);
-  font-style: italic;
-  color: var(--text);
-}
-
-.about-body ul {
-  margin: 0;
-  padding-left: 17px;
-  font-size: 13.5px;
+  margin: 0 0 8px;
+  font-size: 12.5px;
   line-height: 1.7;
   color: var(--text-dim);
 }
 
-.about-body kbd {
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  padding: 1px 5px;
-  border: 1px solid var(--line-mid);
-  border-radius: 2px;
-  color: var(--text);
+.about-body em {
+  font-style: normal;
+  color: var(--cyan);
 }
 
-/* ----------------------------------------------------------- page load -- */
+.about-body strong {
+  color: var(--text);
+  font-weight: 700;
+}
 
-@keyframes rise {
+.about-body ul {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+  font-size: 12.5px;
+  line-height: 1.75;
+  color: var(--text-dim);
+}
+
+.about-body li::before {
+  content: "· ";
+  color: var(--pink);
+}
+
+/* ------------------------------------------------------------ page load -- */
+/* A brisk wipe rather than a drift: panels arrive the way a screen paints. */
+
+@keyframes paint {
   from {
     opacity: 0;
-    transform: translateY(9px);
+    transform: translateX(-4px);
   }
   to {
     opacity: 1;
@@ -974,14 +999,16 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
 .stage-head,
 .viewport,
 .console,
+.statusbar,
 .readout > * {
-  animation: rise 0.5s cubic-bezier(0.22, 0.8, 0.3, 1) backwards;
+  animation: paint 0.22s steps(4, end) backwards;
 }
 
 .masthead { animation-delay: 0.02s; }
-.stage-head { animation-delay: 0.09s; }
-.viewport { animation-delay: 0.05s; }
+.viewport { animation-delay: 0.06s; }
+.stage-head { animation-delay: 0.1s; }
 .console { animation-delay: 0.14s; }
+.statusbar { animation-delay: 0.18s; }
 .readout > *:nth-child(1) { animation-delay: 0.12s; }
 .readout > *:nth-child(2) { animation-delay: 0.17s; }
 .readout > *:nth-child(3) { animation-delay: 0.22s; }
@@ -1015,7 +1042,7 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
   }
 
   .stage {
-    padding: 14px 14px 0;
+    padding: 12px 12px 0;
   }
 
   .viewport {
@@ -1024,7 +1051,12 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
 
   .readout {
     overflow: visible;
-    padding: 14px;
+    padding: 20px 12px 14px;
+  }
+
+  .statusbar {
+    position: sticky;
+    bottom: 0;
   }
 }
 
@@ -1032,16 +1064,14 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
   .masthead {
     height: auto;
     flex-wrap: wrap;
-    gap: 10px 14px;
-    padding: 9px 14px;
+    gap: 8px 12px;
+    padding: 8px 12px;
   }
 
   .channels {
     order: 3;
     flex: 1 0 100%;
-    /* Room for the fading edge, so a half-visible channel reads as
-       "there is more" rather than as a rendering mistake. */
-    padding-bottom: 2px;
+    /* A fading edge, so a half-visible tab reads as "there is more". */
     -webkit-mask-image: linear-gradient(90deg, #000 88%, transparent);
     mask-image: linear-gradient(90deg, #000 88%, transparent);
   }
@@ -1051,31 +1081,26 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
   }
 
   .stage-head {
-    gap: 4px 14px;
-  }
-
-  .stage-title {
-    font-size: 19px;
-  }
-
-  .stage-blurb {
-    font-size: 14px;
+    gap: 3px 12px;
   }
 }
 
 @media (max-width: 620px) {
-  .console {
-    gap: 12px;
-  }
   .toggles {
     margin-left: 0;
     width: 100%;
   }
-  .transport-button span,
+
+  .transport-button span:not(.glyph),
   .rate-label {
     display: none;
   }
+
   .transport-button.primary {
     min-width: 0;
+  }
+
+  .hint:nth-child(n + 4) {
+    display: none;
   }
 }

@@ -11,18 +11,19 @@ interface Shell {
 function shell(title: string, note?: string): Shell {
   const root = document.createElement("section");
   root.className = "panel";
-  const head = document.createElement("div");
-  head.className = "panel-head";
+
   const heading = document.createElement("span");
   heading.className = "panel-title";
   heading.textContent = title;
+
   const noteEl = document.createElement("span");
   noteEl.className = "panel-note";
   if (note) noteEl.textContent = note;
-  head.append(heading, noteEl);
+
   const body = document.createElement("div");
   body.className = "panel-body";
-  root.append(head, body);
+
+  root.append(heading, noteEl, body);
   return { root, body, note: noteEl };
 }
 
@@ -110,14 +111,14 @@ export function chartPanel(
       }
       if (!Number.isFinite(high) || !Number.isFinite(low)) return;
       if (high === low) high = low + 1;
-      const pad = (high - low) * 0.12;
+      const pad = (high - low) * 0.22;
       // Ease the bounds rather than snapping, so a passing spike does not make
       // every other trace jump.
       ceiling = ceiling === 0 ? high + pad : ceiling + (high + pad - ceiling) * 0.08;
       floor = floor === 0 && low === 0 ? 0 : floor + (low - pad - floor) * 0.08;
       const span = Math.max(ceiling - floor, 1e-9);
 
-      ctx.strokeStyle = "rgba(150, 170, 200, 0.09)";
+      ctx.strokeStyle = "rgba(140, 150, 190, 0.09)";
       ctx.lineWidth = 1;
       ctx.beginPath();
       for (let i = 1; i < 4; i++) {
@@ -129,7 +130,7 @@ export function chartPanel(
 
       if (floor < 0 && ceiling > 0) {
         const zero = height - ((0 - floor) / span) * height;
-        ctx.strokeStyle = "rgba(150, 170, 200, 0.28)";
+        ctx.strokeStyle = "rgba(140, 150, 190, 0.3)";
         ctx.beginPath();
         ctx.moveTo(0, Math.round(zero) + 0.5);
         ctx.lineTo(width, Math.round(zero) + 0.5);
@@ -229,14 +230,16 @@ export function histogramPanel(title: string, source: HistogramSource, note?: st
       }
 
       const barWidth = width / bins;
+      ctx.fillStyle = source.color;
       for (let i = 0; i < bins; i++) {
-        const level = levels[i]!;
-        const barHeight = level * (height - 2);
-        ctx.fillStyle = source.color;
-        ctx.globalAlpha = 0.24 + 0.5 * level;
-        ctx.fillRect(i * barWidth + 0.6, height - barHeight, barWidth - 1.2, barHeight);
+        // Quantised to whole pixels so every bar has the same crisp edge --
+        // a half-covered pixel is the one thing a cell grid cannot express.
+        const barHeight = Math.round(levels[i]! * (height - 2));
+        if (barHeight <= 0) continue;
+        const x = Math.round(i * barWidth);
+        const w = Math.max(1, Math.round((i + 1) * barWidth) - x - 1);
+        ctx.fillRect(x, height - barHeight, w, barHeight);
       }
-      ctx.globalAlpha = 1;
 
       const theory = source.theory?.() ?? null;
       if (theory) {
@@ -255,7 +258,7 @@ export function histogramPanel(title: string, source: HistogramSource, note?: st
             if (i === 0) ctx.moveTo(x, y);
             else ctx.lineTo(x, y);
           }
-          ctx.strokeStyle = "#f3b545";
+          ctx.strokeStyle = "#ffc861";
           ctx.lineWidth = 1.6;
           ctx.lineJoin = "round";
           ctx.stroke();
@@ -263,7 +266,7 @@ export function histogramPanel(title: string, source: HistogramSource, note?: st
         if (!legend.childElementCount && source.theoryLabel) {
           const entry = document.createElement("span");
           const swatch = document.createElement("i");
-          swatch.style.background = "#f3b545";
+          swatch.style.background = "#ffc861";
           entry.append(swatch, document.createTextNode(source.theoryLabel));
           legend.append(entry);
         }

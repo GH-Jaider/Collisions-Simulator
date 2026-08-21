@@ -8,12 +8,12 @@
       name="description"
       content="An interactive rigid-body laboratory: collisions, conservation, gravity — with the equations on screen."
     />
-    <meta name="theme-color" content="#070910" />
+    <meta name="theme-color" content="#0c0c12" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400;1,500&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/src/styles/main.css" />
@@ -24,15 +24,15 @@
     <div class="frame">
       <header class="masthead">
         <div class="identity">
-          <span class="wordmark">Collisions</span>
-          <span class="subtitle">rigid-body laboratory</span>
+          <span class="wordmark">COLLISIONS</span>
+          <span class="subtitle">rigid-body lab</span>
         </div>
 
         <nav class="channels" id="channels" aria-label="Experiments"></nav>
 
         <div class="masthead-end">
           <button class="ghost-button" id="about-button" type="button">
-            <span class="key-cap">?</span> how it works
+            <span class="key-cap">?</span>how it works
           </button>
         </div>
       </header>
@@ -45,27 +45,21 @@
           </div>
 
           <div class="viewport" id="viewport">
+            <span class="box-title" id="viewport-title">simulation</span>
+            <span class="box-note" id="scale-note"></span>
             <canvas id="canvas"></canvas>
-            <div class="corner tl" aria-hidden="true"></div>
-            <div class="corner tr" aria-hidden="true"></div>
-            <div class="corner bl" aria-hidden="true"></div>
-            <div class="corner br" aria-hidden="true"></div>
-            <div class="scale-note" id="scale-note"></div>
           </div>
 
           <div class="console">
             <div class="transport">
               <button class="transport-button primary" id="play" type="button" aria-label="Play or pause">
-                <svg viewBox="0 0 16 16" aria-hidden="true"><use href="#icon-pause" /></svg>
-                <span id="play-label">Pause</span>
+                <span class="glyph" id="play-glyph">❚❚</span><span id="play-label">pause</span>
               </button>
               <button class="transport-button" id="step" type="button" title="Advance one frame">
-                <svg viewBox="0 0 16 16" aria-hidden="true"><use href="#icon-step" /></svg>
-                <span>Step</span>
+                <span class="glyph">▶❚</span><span>step</span>
               </button>
               <button class="transport-button" id="reset" type="button" title="Restart the experiment">
-                <svg viewBox="0 0 16 16" aria-hidden="true"><use href="#icon-reset" /></svg>
-                <span>Restart</span>
+                <span class="glyph">↺</span><span>restart</span>
               </button>
             </div>
 
@@ -80,40 +74,27 @@
 
         <aside class="readout" id="readout" aria-label="Measurements"></aside>
       </main>
+
+      <footer class="statusbar">
+        <span class="hint"><b>space</b> play/pause</span>
+        <span class="hint"><b>.</b> step</span>
+        <span class="hint"><b>r</b> restart</span>
+        <span class="hint"><b>1-4</b> experiment</span>
+        <span class="hint"><b>?</b> help</span>
+        <span class="statusbar-end" id="status-state">running</span>
+      </footer>
     </div>
 
     <dialog class="about" id="about">
       <article class="about-body">
         <header>
-          <h2>How it works</h2>
-          <button class="ghost-button" id="about-close" type="button">close</button>
+          <h2>how it works</h2>
+          <button class="ghost-button" id="about-close" type="button">esc</button>
         </header>
         <div id="about-content"></div>
       </article>
     </dialog>
 
-    <svg style="display: none" aria-hidden="true">
-      <symbol id="icon-pause" viewBox="0 0 16 16">
-        <rect x="4" y="3" width="3" height="10" rx="1" />
-        <rect x="9" y="3" width="3" height="10" rx="1" />
-      </symbol>
-      <symbol id="icon-play" viewBox="0 0 16 16">
-        <path d="M5 3.4a.8.8 0 0 1 1.22-.68l6.1 3.9a.8.8 0 0 1 0 1.35l-6.1 3.9A.8.8 0 0 1 5 11.2Z" />
-      </symbol>
-      <symbol id="icon-step" viewBox="0 0 16 16">
-        <path d="M4 3.4a.8.8 0 0 1 1.22-.68l5.1 3.9a.8.8 0 0 1 0 1.35l-5.1 3.9A.8.8 0 0 1 4 11.2Z" />
-        <rect x="11.5" y="3" width="2" height="10" rx="1" />
-      </symbol>
-      <symbol id="icon-reset" viewBox="0 0 16 16">
-        <path
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.7"
-          stroke-linecap="round"
-          d="M13 8a5 5 0 1 1-1.6-3.67M13 2.5V5.4h-2.9"
-        />
-      </symbol>
-    </svg>
 
     <script type="module" src="/src/main.ts"></script>
   </body>

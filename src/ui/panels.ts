@@ -14,22 +14,24 @@ export interface Panel {
 }
 
 function panelShell(title: string, note?: string): { root: HTMLElement; body: HTMLElement; note: HTMLElement } {
+  // The title and the note are absolutely positioned over the top border, so
+  // the rule appears to break around them -- the CSS equivalent of a
+  // box-drawing frame with its label cut in.
   const root = document.createElement("section");
   root.className = "panel";
 
-  const head = document.createElement("div");
-  head.className = "panel-head";
   const heading = document.createElement("span");
   heading.className = "panel-title";
   heading.textContent = title;
+
   const noteEl = document.createElement("span");
   noteEl.className = "panel-note";
   if (note) noteEl.textContent = note;
-  head.append(heading, noteEl);
 
   const body = document.createElement("div");
   body.className = "panel-body";
-  root.append(head, body);
+
+  root.append(heading, noteEl, body);
   return { root, body, note: noteEl };
 }
 

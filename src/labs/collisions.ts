@@ -8,8 +8,8 @@ import { fixed, percent, signed } from "../ui/format";
 import { controlsPanel, customPanel, metricsPanel, type Panel } from "../ui/panels";
 import type { Lab, LabHost, PointerState, Toggle } from "./types";
 
-const COLOR_A = "#f4736f";
-const COLOR_B = "#57cff0";
+const COLOR_A = "#ff5fa2";
+const COLOR_B = "#4fe3d2";
 /** Metres of arrow drawn per m/s of velocity. */
 const VELOCITY_SCALE = 0.22;
 
@@ -301,7 +301,7 @@ export class CollisionsLab implements Lab {
           ticks: ["they stick", "perfect bounce"],
         },
       ],
-      "re-arms when changed",
+      "re-arms on change",
     );
 
     const equation = customPanel("the impulse", (body) => {
@@ -409,7 +409,7 @@ export class CollisionsLab implements Lab {
           },
         },
       ],
-      "momentum is conserved always",
+      "p always conserved",
     );
 
     return [setup, equation, inspector, conservation];
