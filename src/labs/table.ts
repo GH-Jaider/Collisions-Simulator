@@ -25,17 +25,18 @@ export class TableLab implements Lab {
   readonly interactive = true;
 
   readonly about = `
-    <p>A real table is neither elastic nor frictionless, and both are here. Restitution below
-    1 takes energy out at every impact, <em>drag</em> stands in for the cloth, and contact
-    friction applies a tangential impulse that creates <strong>spin</strong>.</p>
+    <p>A real table is neither elastic nor frictionless, and both are here. Restitution
+    below 1 takes energy out at every impact, <em>drag</em> stands in for the cloth, and
+    contact friction applies a tangential impulse that creates <strong>spin</strong>.</p>
     <h3>Why the balls spin</h3>
-    <p>Coulomb's law caps the tangential force at <em>μ</em> times the normal one. Below that
-    limit the surfaces grip; past it, they slide. That tangential impulse exerts a torque
-    about the centre, and the spin follows. The dark mark on each ball turns with it: without
-    it, rolling and sliding look exactly the same.</p>
+    <p>Coulomb's law caps the tangential force at <em>μ</em> times the normal one. Below
+    that limit the surfaces grip. Past it, they slide.</p>
+    <p>That tangential impulse exerts a torque about the centre, and the spin follows. The
+    dark mark on each ball turns with it: without the mark, rolling and sliding look the
+    same.</p>
     <h3>To play</h3>
     <ul>
-      <li><strong>Drag</strong> a ball to move it; releasing throws it.</li>
+      <li><strong>Drag</strong> a ball to move it. Releasing throws it.</li>
       <li>While held it is immovable, so it shoves the others instead of being shoved.</li>
       <li><strong>Drag from empty felt</strong> to catapult a new ball in.</li>
       <li><strong>Right-click</strong> a ball to remove it.</li>
@@ -176,8 +177,8 @@ export class TableLab implements Lab {
     const help = notePanel(
       "with the mouse",
       `<p class="inspector-empty">
-        <strong>Drag</strong> a ball to move it; releasing throws it.<br />
-        <strong>Drag empty felt</strong> to catapult a new ball in.<br />
+        <strong>Drag</strong> a ball to move it. Releasing throws it.<br />
+        <strong>Drag empty felt</strong> to catapult a new one in.<br />
         <strong>Right-click</strong> to remove one.
       </p>`,
     );

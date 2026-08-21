@@ -2,11 +2,13 @@
 
 **An interactive rigid-body physics laboratory, in the browser.**
 
-Not an animation of balls bouncing — an instrument, dressed as a terminal. You set the
+Not an animation of balls bouncing. An instrument, dressed as a terminal. You set the
 experiment up with real numbers (kilograms, metres, seconds), launch it, and the impact is
 captured with **the impulse equation solved using your own values**.
 
 ### → [Open the laboratory](https://gh-jaider.github.io/Collisions-Simulator/)
+
+<sub>[Why this exists](WHY.md)</sub>
 
 ![The collisions laboratory](docs/collisions.png)
 
@@ -17,18 +19,18 @@ captured with **the impulse equation solved using your own values**.
 ### 1 · Collisions
 
 A row of discs, up to six of them. Add and remove bodies, click one on the canvas or in the
-list to select it, and give it whatever mass and speed you like — the radius follows the
-mass, so a heavier body really is a bigger one. Four presets are one click away: a plain
-`pair`, a Newton's `cradle`, a light body against a `wall`, and a `spread`.
+list to select it, and give it whatever mass and speed you like. The radius follows the mass,
+so a heavier body really is a bigger one. Four presets are one click away: a plain `pair`, a
+Newton's `cradle`, a light body against a `wall`, and a `spread`.
 
 At the instant of contact the simulator freezes what happened and breaks it down:
 
 $$J = \frac{(1 + e)\,v_{\text{rel}}}{1/m_1 + 1/m_2}$$
 
-…and below it, the same formula with your numbers substituted and the result. The
+Below it sits the same formula with your numbers substituted, and the result. The
 *before and after* panel shows each body's velocity on both sides of the impact and its
-change in momentum Δp — which turn out to be equal and opposite, because that is literally
-what an impulse means.
+change in momentum Δp. Those turn out equal and opposite, because that is what an impulse
+means.
 
 Things you can see in thirty seconds:
 
@@ -41,15 +43,15 @@ Things you can see in thirty seconds:
 
 ### 2 · Gas and statistics
 
-![The gas and the Maxwell–Boltzmann curve](docs/gas.png)
+![The gas and the Maxwell-Boltzmann curve](docs/gas.png)
 
-A couple of hundred particles start out **all at the same speed** — a situation that does
-not exist in nature. Purely by colliding with one another, within seconds the distribution
-broadens into the Maxwell–Boltzmann curve, drawn over the histogram.
+A couple of hundred particles start out **all at the same speed**, which no real gas ever
+does. Purely by colliding with one another, within seconds the spread opens out into the
+Maxwell-Boltzmann curve drawn over the histogram.
 
-**The curve is not fitted to the histogram.** Its single parameter comes from the mean
-square speed, which is fixed by the total energy of the system. It is computed separately
-and drawn on top; that the two agree is the result, not the premise.
+**The curve is not fitted to the histogram.** Its one parameter comes from the mean square
+speed, which the total energy fixes. It is worked out separately and drawn on top. That the
+two agree is the result, not the premise.
 
 ### 3 · Gravity well
 
@@ -62,15 +64,15 @@ shells come round in about a second and outer ones take four, which puts Kepler'
 law on display without saying a word about it.
 
 **Then cut the string.** Switch `gravity` off mid-orbit. Almost everyone expects the
-satellites to fly outwards, away from the centre — and they do not. With no force acting,
-each one carries straight on along the *tangent* it already had, exactly as Newton's first
-law says. The trails show it plainly: an arc, then a hard straight line. The orbit was
-never something pushing them out; it was gravity continuously bending a straight line.
+satellites to fly outwards, away from the centre. They do not. With no force acting, each
+one carries straight on along the *tangent* it already had, exactly as Newton's first law
+says. The trails show it plainly: an arc, then a hard straight line. The orbit was never
+something pushing them out. It was gravity bending a straight line, continuously.
 
 The `well strength` slider changes the constant live, so you can wind the well up and watch
-the circles spiral inward, or ease it off and watch them drift out. Both masses are yours
-to set and both drive the radii on screen, at one shared density — at a mass ratio of 360
-to 1 the star really is about seven times the radius, because that is the cube root of 360.
+the circles spiral inward, or ease it off and watch them drift out. Both masses are yours to
+set and both drive the radii on screen, at one shared density. At a mass ratio of 360 to 1
+the star really is about seven times the radius, because that is the cube root of 360.
 
 **And then break it.** The circular-orbit formula quietly assumes the satellites are too
 light to matter. Push `satellite mass` up and watch that assumption fail: they start pulling
@@ -80,10 +82,10 @@ mass-ratio readout turns amber as you cross into that regime.
 
 ### 4 · Pool table
 
-The sandbox. Coulomb friction, cloth drag, and restitution below 1. This is the one you
-can interfere with: drag a ball and release to throw it, drag empty felt to catapult a new
-ball in, right-click to remove one. The dark mark on each ball turns with it — without
-that, rolling and sliding look exactly the same.
+The sandbox. Coulomb friction, cloth drag, and restitution below 1. This is the one you can
+interfere with: drag a ball and release to throw it, drag empty felt to catapult a new ball
+in, right-click to remove one. The dark mark on each ball turns with it. Without the mark,
+rolling and sliding look the same.
 
 ---
 
@@ -102,12 +104,12 @@ derive by hand. **48 tests**, and these are the ones that matter:
 | A satellite after the field is cut | leaves along its tangent to within `0.1%`, at unchanged speed |
 | A five-body cradle | the struck row stays still; the far body leaves at the incoming speed |
 | Heavy satellites | orbits hold at a test mass and demonstrably stop holding at 5 kg |
-| A gas starting at one single speed | coefficient of variation 0.35–0.7 (Rayleigh predicts 0.523) |
+| A gas starting at one single speed | coefficient of variation 0.35 to 0.7 (Rayleigh predicts 0.523) |
 | Momentum at `e` = 0, 0.35, 0.8, 1 | conserved in all four cases |
 
-The *energy drift* panel on screen is that same check, live. Potential energy is included
-whenever a force field is switched on — a falling ball speeds up because it is converting
-potential into kinetic, not because the integrator invented it — and the figure only turns
+The *energy drift* panel on screen is that same check, live. Potential energy counts
+whenever a force field is switched on, since a falling ball speeds up by converting
+potential into kinetic rather than by the integrator inventing it. The figure only turns
 green when the current settings *should* conserve energy.
 
 ### How contacts are resolved
@@ -116,7 +118,7 @@ Sequential impulses with accumulated-impulse clamping, the same approach Box2D u
 
 - **Restitution is captured once**, from the approach speed, so repeated iterations cannot
   pump energy into the contact.
-- **The accumulated normal impulse can never go negative**: a contact pushes, it does not
+- **The accumulated normal impulse can never go negative.** A contact pushes, it does not
   pull. That is what stops a pair already flying apart from being dragged back together.
 - **Overlap is corrected geometrically**, split by inverse mass, over several passes that
   re-measure the depth each time. Impulses only fix velocities; without this, bodies sink
@@ -153,17 +155,17 @@ The whole site is **18 kB of gzipped JavaScript** with no runtime dependencies.
 
 ## About the interface
 
-The visual language is borrowed wholesale from TUIs — Charm's tooling, `sampler`, a
-well-made curses app — which turns out to suit an instrument better than a conventional
-web layout does. That means a few firm commitments:
+The visual language is borrowed wholesale from TUIs: Charm's tooling, `sampler`, a well-made
+curses app. It suits an instrument better than a conventional web layout does. That means a
+few firm commitments:
 
-- One monospace face for everything, the maths included. A terminal has no second font,
-  and the even rhythm is most of what makes the look.
+- One monospace face for everything, the maths included. A terminal has no second font, and
+  the even rhythm is most of what makes the look.
 - Every box is a one-pixel rule with its title cut into the top border, the way a
   box-drawing character set renders `┌─ TITLE ─────┐`.
-- Square corners, flat fills, no shadows and no gradients. A cell either has a colour or
-  it does not — which is also why the bodies are drawn as flat discs with a bright rim
-  rather than shaded spheres.
+- Square corners, flat fills, no shadows and no gradients. A cell either has a colour or it
+  does not, which is also why the bodies are flat discs with a bright rim rather than shaded
+  spheres.
 - Selection is inverse video, never a soft glow.
 
 No ASCII art, though: the simulation is drawn with real geometry at full resolution. The
@@ -185,13 +187,13 @@ notebook).
 
 They live in the stylesheet, not in TypeScript. The chrome takes each colour through
 `var(--x)` and the canvas reads the same custom property back with `getComputedStyle`, so
-every colour is written down exactly once — a table of hexes in CSS mirrored by a table of
+every colour is written down exactly once. A table of hexes in CSS mirrored by a table of
 hexes in JavaScript drifts apart the first time anyone adjusts one of them.
 
-The one thing that cannot be a colour is direction: on a dark ground a body is filled by
-darkening its own colour and rimmed with the full one, and on a light ground that reads as
-a bright ring around a hole. So the shading flips, driven by the measured brightness of the
-background rather than a flag a new theme could forget to set.
+One thing cannot be a colour, though. On a dark ground a body is filled by darkening its own
+colour and rimmed with the full one, and on a light ground that reads as a bright ring around
+a hole. So the shading flips, driven by the measured brightness of the background rather than
+a flag a new theme could forget to set.
 
 ## Using the physics on its own
 

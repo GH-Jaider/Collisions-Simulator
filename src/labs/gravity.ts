@@ -37,7 +37,7 @@ const G = 0.07;
 export class GravityLab implements Lab {
   readonly id = "gravity";
   readonly title = "Gravity well";
-  readonly blurb = "Inverse-square attraction. Each satellite launches at exactly its circular-orbit speed.";
+  readonly blurb = "Inverse-square attraction. Every satellite launches at its exact circular-orbit speed.";
   readonly worldHeight = 4.2;
   readonly interactive = true;
 
@@ -47,29 +47,31 @@ export class GravityLab implements Lab {
     force has to be exactly the centripetal force required, which fixes the speed:
     <em>v</em> = √(<em>GM</em>/<em>r</em>). The satellites launch at precisely that speed.</p>
     <h3>The softening trick</h3>
-    <p>A pure 1/r² law runs off to infinity when two bodies graze each other, and a single
-    integration step is enough to fling one clean out of the system. Here the force is
-    <em>softened</em>: <em>r</em>² is replaced by <em>r</em>² + <em>ε</em>². That slightly
-    changes the circular-orbit speed, and this lab uses the corrected formula — with the
-    textbook one, every orbit would come out elliptical from a small systematic error.</p>
+    <p>A pure 1/r² law runs off to infinity when two bodies graze each other, and one
+    integration step is enough to fling a body clean out of the system. So the force is
+    <em>softened</em>: <em>r</em>² becomes <em>r</em>² + <em>ε</em>².</p>
+    <p>That shifts the circular-orbit speed a little, and this lab uses the corrected
+    formula. With the textbook one, every orbit would come out slightly elliptical from a
+    small systematic error.</p>
     <h3>What to look for</h3>
-    <p>The energy plot. Kinetic and potential trade back and forth continuously, but their sum
-    is flat. That exchange <em>is</em> the orbit.</p>
+    <p>The energy plot. Kinetic and potential trade back and forth without pause, and their
+    sum stays flat. That exchange <em>is</em> the orbit.</p>
     <h3>Cut the string</h3>
-    <p>Switch <strong>gravity</strong> off mid-orbit. Almost everyone expects the satellites to
-    fly outwards, away from the centre — and they do not. With no force acting, each one carries
-    straight on along the <em>tangent</em> it already had, exactly as Newton's first law says.
-    The orbit was never something pushing them out; it was gravity continuously bending a
-    straight line.</p>
+    <p>Switch <strong>gravity</strong> off mid-orbit. Almost everyone expects the satellites
+    to fly outwards, away from the centre. They do not.</p>
+    <p>With no force acting, each one carries straight on along the <em>tangent</em> it
+    already had, exactly as Newton's first law says. The orbit was never something pushing
+    them out. It was gravity bending a straight line, continuously.</p>
     <p>Turn it back on and they are captured again, though rarely onto the circle they left:
     they now arrive with the wrong speed for wherever they happen to be.</p>
     <h3>Give the satellites some weight</h3>
-    <p>The circular-orbit formula quietly assumes the satellites are too light to matter. Push
-    <strong>satellite mass</strong> up and watch that assumption fail: they begin pulling on
-    each other as well as on the star, and because neighbouring orbits keep neighbouring time,
-    those small tugs land in the same direction lap after lap until the shells shear apart. The
-    <em>mass ratio</em> readout turns amber when you cross into that regime.</p>
-    <p>Both masses drive the radii on screen, so a heavier body really is a bigger one.</p>`;
+    <p>The circular-orbit formula quietly assumes the satellites are too light to matter.
+    Push <strong>satellite mass</strong> up and watch that assumption fail. They begin
+    pulling on each other as well as on the star, and because neighbouring orbits keep
+    neighbouring time, those small tugs land the same way lap after lap until the shells
+    shear apart.</p>
+    <p>The <em>mass ratio</em> readout turns amber when you cross into that regime. Both
+    masses drive the radii on screen, so a heavier body really is a bigger one.</p>`;
 
   shells = 4;
   perShell = 3;
@@ -210,7 +212,7 @@ export class GravityLab implements Lab {
     }
 
     if (!this.gravityOn) {
-      renderer.drawNote("gravity off · no force, so no curve", 12, 12, theme().amber);
+      renderer.drawNote("gravity off. no force, so no curve", 12, 12, theme().amber);
       if (this.sinceCut > 0.7) {
         renderer.drawNote(
           "each body leaves along its tangent, not outward from the centre",
@@ -360,7 +362,7 @@ export class GravityLab implements Lab {
         label: "radius deviation",
         value: () => {
           const star = world.bodies.find((body) => body.isStatic);
-          if (!star || this.launchRadii.size === 0) return "—";
+          if (!star || this.launchRadii.size === 0) return "--";
           let worst = 0;
           for (const body of world.bodies) {
             const launch = this.launchRadii.get(body.id);
@@ -380,7 +382,7 @@ export class GravityLab implements Lab {
         label: "drift",
         value: () => {
           const drift = world.energyDrift;
-          return drift === null ? "—" : percent(drift, 4);
+          return drift === null ? "--" : percent(drift, 4);
         },
         tone: () => {
           const drift = world.energyDrift;

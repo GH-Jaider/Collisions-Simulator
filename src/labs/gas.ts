@@ -27,20 +27,20 @@ export class GasLab implements Lab {
   readonly interactive = true;
 
   readonly about = `
-    <p>This is an ideal gas in two dimensions: hard discs that interact only on contact. They
-    all start at the <em>same</em> speed in random directions — a completely artificial
-    situation. Within seconds, purely by colliding with one another, the distribution of
-    speeds broadens into the <strong>Maxwell–Boltzmann</strong> curve.</p>
+    <p>An ideal gas in two dimensions: hard discs that interact only on contact. They all
+    start at the <em>same</em> speed in random directions, which no real gas ever does.
+    Within seconds, purely by colliding with one another, the spread of speeds opens out
+    into the <strong>Maxwell-Boltzmann</strong> curve.</p>
     <h3>The curve is not fitted</h3>
     <p>In two dimensions the distribution is a Rayleigh: <em>f</em>(<em>v</em>) ∝
-    <em>v</em>·exp(−<em>v</em>²/2σ²). Its single parameter σ follows from the mean square
-    speed, which is in turn fixed by the total energy of the system. It is not fitted to the
-    shape of the histogram: it is computed separately and drawn on top. That they agree is
-    the result.</p>
+    <em>v</em>·exp(−<em>v</em>²/2σ²). Its one parameter σ comes from the mean square speed,
+    which the total energy fixes.</p>
+    <p>So it is not fitted to the shape of the histogram. It is worked out separately and
+    drawn on top. That the two agree is the result.</p>
     <h3>And the straight line</h3>
-    <p>At restitution 1 with no friction, energy must be conserved <em>exactly</em>. The
-    energy plot is the check: if the integrator were manufacturing or leaking energy, that
-    line would bend. Lower the restitution and watch it fall.</p>`;
+    <p>At restitution 1 with no friction, energy must be conserved exactly. The energy plot
+    is the check: if the integrator were making or leaking energy, that line would bend.
+    Lower the restitution and watch it fall.</p>`;
 
   particles = 140;
   speed = 2.6;
@@ -165,7 +165,7 @@ export class GasLab implements Lab {
         label: "energy drift",
         value: () => {
           const drift = world.energyDrift;
-          return drift === null ? "—" : percent(drift, 4);
+          return drift === null ? "--" : percent(drift, 4);
         },
         tone: () => {
           const drift = world.energyDrift;
@@ -187,7 +187,7 @@ export class GasLab implements Lab {
     const distribution = histogramPanel("speed distribution", {
       values: () => world.speeds(),
       color: () => theme().cyan,
-      theoryLabel: "Maxwell–Boltzmann",
+      theoryLabel: "Maxwell-Boltzmann",
       theory: () => {
         const speeds = world.speeds();
         if (speeds.length < 12) return null;

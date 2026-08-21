@@ -278,7 +278,7 @@ export function histogramPanel(title: string, source: HistogramSource, note?: st
         legend.replaceChildren();
       }
 
-      noteEl.textContent = `0 – ${peak.toFixed(1)} m/s`;
+      noteEl.textContent = `0 to ${peak.toFixed(1)} m/s`;
     },
   };
 }

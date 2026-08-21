@@ -92,31 +92,33 @@ const PRESETS: Preset[] = [
 export class CollisionsLab implements Lab {
   readonly id = "collisions";
   readonly title = "Collisions";
-  readonly blurb =
-    "Build a row of bodies, set their masses, and read the impulse that resolves each impact.";
+  readonly blurb = "Set up a row of bodies and read the impulse behind every impact.";
   readonly worldHeight = 3.4;
   readonly interactive = false;
 
   readonly about = `
-    <p>Add bodies with <strong>+ add</strong>, click one on the canvas or in the list to select
-    it, and give it whatever mass and speed you like. The presets are quick starts.</p>
-    <p>A collision does not change velocities gradually. It changes them all at once, through
-    an <strong>impulse</strong> — a transfer of momentum that acts along the
-    <em>contact normal</em>, the line joining the two centres at the instant they touch.</p>
+    <p>Add bodies with <strong>+ add</strong>. Click one on the canvas or in the list to
+    select it, then set its mass and speed. The presets are quick starts.</p>
+    <p>A collision does not change velocities gradually. It changes them at once, through an
+    <strong>impulse</strong>: a transfer of momentum along the <em>contact normal</em>, the
+    line joining the two centres at the instant they touch.</p>
     <h3>Where the formula comes from</h3>
-    <p>Two conditions are imposed. First, total momentum cannot change: whatever one body
-    gains, the other loses. Second, the <em>coefficient of restitution</em> e fixes how fast
-    the pair separates relative to how fast it approached. Solving both together yields a
-    single quantity — the impulse J — and with it, both final velocities.</p>
+    <p>Two conditions. Total momentum cannot change, so whatever one body gains the other
+    loses. And the <em>coefficient of restitution</em> e fixes how fast the pair separates
+    relative to how fast it approached.</p>
+    <p>Solve both together and one quantity falls out: the impulse J. Both final velocities
+    follow from it.</p>
     <h3>What to look for</h3>
     <ul>
-      <li>At <em>e</em> = 1 kinetic energy is conserved exactly. Lower e and watch how much is lost.</li>
+      <li>At <em>e</em> = 1 kinetic energy is conserved exactly. Lower e and watch how much
+      is lost.</li>
       <li>Equal masses meeting head-on simply exchange velocities.</li>
       <li>Equal masses, e = 1, one at rest: they leave at exactly <strong>90°</strong>.</li>
-      <li>With a huge <em>m</em><sub>2</sub>, the light body bounces back at nearly its own speed.</li>
-      <li>Momentum is conserved <em>always</em>, whatever e is. Energy is not.</li>
-      <li>Try the <strong>cradle</strong> preset: the struck row stays still and only the far
-      body leaves, at exactly the incoming speed.</li>
+      <li>With a huge <em>m</em><sub>2</sub>, the light body bounces back at nearly its own
+      speed.</li>
+      <li>Momentum is conserved whatever e is. Energy is not.</li>
+      <li>Try the <strong>cradle</strong>: the struck row stays still and only the far body
+      leaves, at exactly the incoming speed.</li>
     </ul>`;
 
   /** The experiment as configured, independent of any running World. */
@@ -437,14 +439,14 @@ export class CollisionsLab implements Lab {
           `(1 ${op("+")} ${v("e")}) · ${v("v", "rel")}`,
           `1/${v("m", "1")} ${op("+")} 1/${v("m", "2")}`,
         )}`,
-        "impulse along the contact normal",
+        "along the contact normal",
       );
 
       return () => {
         const record = this.captured;
         if (!record) {
           substituted.innerHTML =
-            '<p class="inspector-empty">Waiting for the impact…</p>';
+            '<p class="inspector-empty">Waiting for the impact.</p>';
           return;
         }
         const invSum = 1 / record.a.mass + 1 / record.b.mass;
@@ -453,13 +455,13 @@ export class CollisionsLab implements Lab {
             `(1 ${op("+")} ${num(fixed(record.restitution, 2))}) · ${num(fixed(record.approachSpeed, 3))}`,
             `1/${num(fixed(record.a.mass, 2))} ${op("+")} 1/${num(fixed(record.b.mass, 2))}`,
           )} ${op("=")} ${num(fixed(record.impulse, 3))}`,
-          `${fixed(record.impulse, 3)} kg·m/s · the same impulse on both, in opposite directions`,
+          `${fixed(record.impulse, 3)} kg·m/s, equal and opposite on the two bodies`,
         ) +
           equationBlock(
             `${v("v", "1")}′ ${op("=")} ${v("v", "1")} ${op("−")} (${v("J")}${op("/")}${v("m", "1")}) n̂` +
               `<br />` +
               `${v("v", "2")}′ ${op("=")} ${v("v", "2")} ${op("+")} (${v("J")}${op("/")}${v("m", "2")}) n̂`,
-            "the same J splits the change in inverse proportion to mass",
+            "one J, split in inverse proportion to mass",
           );
         void invSum;
       };
@@ -473,8 +475,8 @@ export class CollisionsLab implements Lab {
         if (!record) {
           note.textContent = "";
           pair.innerHTML =
-            '<p class="inspector-empty">No impact has happened yet. Adjust the setup and ' +
-            "press <strong>Restart</strong> to launch it again.</p>";
+            '<p class="inspector-empty">Nothing has collided yet. Adjust the setup, then ' +
+            "press <strong>restart</strong>.</p>";
           return;
         }
         note.textContent = `t = ${fixed(record.time, 2)} s`;
@@ -520,7 +522,7 @@ export class CollisionsLab implements Lab {
         {
           label: "energy lost",
           value: () => {
-            if (this.energyBefore <= 0) return "—";
+            if (this.energyBefore <= 0) return "--";
             const lost = (this.energyBefore - world.kineticEnergy) / this.energyBefore;
             return percent(-lost, 2);
           },
@@ -531,7 +533,7 @@ export class CollisionsLab implements Lab {
           },
         },
       ],
-      "p always conserved",
+      "p always holds",
     );
 
     return [starters, roster, detail, table, equation, inspector, conservation];

@@ -7,14 +7,14 @@
  */
 
 export function fixed(value: number, decimals = 2): string {
-  if (!Number.isFinite(value)) return "—";
+  if (!Number.isFinite(value)) return "--";
   // Avoid rendering "-0.00", which reads as a different number to "0.00".
   const rounded = Number(value.toFixed(decimals));
   return (Object.is(rounded, -0) ? 0 : rounded).toFixed(decimals);
 }
 
 export function signed(value: number, decimals = 2): string {
-  if (!Number.isFinite(value)) return "—";
+  if (!Number.isFinite(value)) return "--";
   const text = fixed(Math.abs(value), decimals);
   const rounded = Number(value.toFixed(decimals));
   return `${rounded < 0 ? "−" : "+"}${text}`;
@@ -22,7 +22,7 @@ export function signed(value: number, decimals = 2): string {
 
 /** Compact large magnitudes so a column never changes width. */
 export function compact(value: number, decimals = 2): string {
-  if (!Number.isFinite(value)) return "—";
+  if (!Number.isFinite(value)) return "--";
   const magnitude = Math.abs(value);
   if (magnitude >= 1e6) return `${fixed(value / 1e6, 2)}M`;
   if (magnitude >= 1e3) return `${fixed(value / 1e3, 2)}k`;
