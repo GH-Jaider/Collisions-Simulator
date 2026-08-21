@@ -79,9 +79,9 @@
   --sw-charm-bg: #0c0c12;
   --sw-charm-a: #ff5fa2;
   --sw-charm-b: #4fe3d2;
-  --sw-nord-bg: #1c212a;
-  --sw-nord-a: #88c0d0;
-  --sw-nord-b: #b48ead;
+  --sw-onyx-bg: #08090b;
+  --sw-onyx-a: #5cc8ff;
+  --sw-onyx-b: #a78bfa;
   --sw-ember-bg: #1b1a17;
   --sw-ember-a: #fe8019;
   --sw-ember-b: #b8bb26;
@@ -91,48 +91,50 @@
 }
 
 /* -----------------------------------------------------------------------
-   nord — the icy one. Cool and low-contrast by design; the accents are
-   muted enough that the readouts recede and the simulation leads.
+   onyx — the deep one. Near-pure black rather than a tinted charcoal, with
+   the contrast pushed up and the accents kept cool and few. Where charm is
+   loud, this one gets out of the way: the brightest thing on screen should
+   be the simulation.
    ----------------------------------------------------------------------- */
-[data-theme="nord"] {
-  --bg: #1c212a;
-  --bg-panel: #232a35;
-  --bg-raised: #2f3846;
+[data-theme="onyx"] {
+  --bg: #08090b;
+  --bg-panel: #0e1014;
+  --bg-raised: #171a20;
 
-  --line: #3a4353;
-  --line-bright: #566073;
+  --line: #23272f;
+  --line-bright: #3c434e;
 
-  --text: #eceff4;
-  --text-dim: #a7b3c7;
-  --text-faint: #71809a;
+  --text: #f1f3f6;
+  --text-dim: #99a1ad;
+  --text-faint: #626a77;
 
-  --pink: #b48ead;
-  --purple: #9d8bd0;
-  --cyan: #88c0d0;
-  --lime: #a3be8c;
-  --amber: #ebcb8b;
-  --green: #a3be8c;
-  --red: #bf616a;
-  --blue: #81a1c1;
+  --pink: #5cc8ff;
+  --purple: #a78bfa;
+  --cyan: #2dd4bf;
+  --lime: #a3e635;
+  --amber: #fbbf24;
+  --green: #34d399;
+  --red: #f87171;
+  --blue: #60a5fa;
 
-  --canvas-bg: #1c212a;
-  --canvas-dot: #8fa3c4;
-  --canvas-line: #8296b8;
-  --canvas-tick: #7d8CA6;
-  --canvas-mark: #eceff4;
+  --canvas-bg: #08090b;
+  --canvas-dot: #8d97a6;
+  --canvas-line: #7e8998;
+  --canvas-tick: #6f7986;
+  --canvas-mark: #ffffff;
 
-  --body-1: #88c0d0;
-  --body-2: #a3be8c;
-  --body-3: #ebcb8b;
-  --body-4: #b48ead;
-  --body-5: #d08770;
-  --body-6: #81a1c1;
-  --body-7: #8fbcbb;
-  --body-8: #bf616a;
-  --body-star: #ebcb8b;
-  --body-cue: #eceff4;
+  --body-1: #5cc8ff;
+  --body-2: #2dd4bf;
+  --body-3: #fbbf24;
+  --body-4: #a78bfa;
+  --body-5: #34d399;
+  --body-6: #f472b6;
+  --body-7: #fb923c;
+  --body-8: #a3e635;
+  --body-star: #fbbf24;
+  --body-cue: #f5f7fa;
 
-  --grain: rgba(160, 180, 220, 0.05);
+  --grain: rgba(150, 170, 200, 0.045);
 }
 
 /* -----------------------------------------------------------------------
@@ -495,16 +497,16 @@ button {
   background: var(--sw-charm-b);
 }
 
-/* The swatch for "nord" is painted in that theme's own colours, whichever
+/* The swatch for "onyx" is painted in that theme's own colours, whichever
    theme is currently active -- so it previews rather than merely labels. */
-.theme-swatch[data-theme="nord"] {
-  background: var(--sw-nord-bg);
+.theme-swatch[data-theme="onyx"] {
+  background: var(--sw-onyx-bg);
 }
-.theme-swatch[data-theme="nord"]::before {
-  background: var(--sw-nord-a);
+.theme-swatch[data-theme="onyx"]::before {
+  background: var(--sw-onyx-a);
 }
-.theme-swatch[data-theme="nord"]::after {
-  background: var(--sw-nord-b);
+.theme-swatch[data-theme="onyx"]::after {
+  background: var(--sw-onyx-b);
 }
 
 /* The swatch for "ember" is painted in that theme's own colours, whichever

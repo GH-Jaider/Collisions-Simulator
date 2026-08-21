@@ -22,7 +22,12 @@
       // palette on the way in. Deliberately tiny and dependency-free.
       try {
         var t = localStorage.getItem("collisions.theme");
-        if (t && t !== "charm") document.documentElement.dataset.theme = t;
+        // Checked against the known set: a theme that has since been renamed
+        // would otherwise leave the page on an attribute nothing styles and
+        // no swatch matches.
+        if (["onyx", "ember", "paper"].indexOf(t) >= 0) {
+          document.documentElement.dataset.theme = t;
+        }
       } catch (e) {}
     </script>
   </head>

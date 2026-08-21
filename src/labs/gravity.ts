@@ -327,8 +327,12 @@ export class GravityLab implements Lab {
     const energy = chartPanel(
       "energy exchange",
       [
-        { label: "kinetic", color: () => theme().cyan, sample: () => world.kineticEnergy },
-        { label: "potential", color: () => theme().pink, sample: () => world.potentialEnergy },
+        // Blue, red and green: the one triad that stays mutually legible in
+        // every theme. An earlier pairing used cyan and pink, which on a
+        // cool palette both land in the same blue-green family and the three
+        // traces became impossible to tell apart.
+        { label: "kinetic", color: () => theme().blue, sample: () => world.kineticEnergy },
+        { label: "potential", color: () => theme().red, sample: () => world.potentialEnergy },
         { label: "total", color: () => theme().green, sample: () => world.totalEnergy },
       ],
       { includeZero: false, note: "sum is flat" },

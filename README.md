@@ -172,12 +172,13 @@ aesthetic is the chrome, not the physics.
 ### Themes
 
 Four palettes, picked from the swatches in the top right and remembered between visits:
-**charm** (hot pink on near-black), **nord** (cool and muted), **ember** (warm retro, in the
-gruvbox lineage) and **paper** (light, like a printed lab notebook).
+**charm** (hot pink on near-black), **onyx** (near-pure black, high contrast, cool accents),
+**ember** (warm retro, in the gruvbox lineage) and **paper** (light, like a printed lab
+notebook).
 
 <p align="center">
   <img src="docs/theme-charm.png" width="49%" alt="charm theme">
-  <img src="docs/theme-nord.png" width="49%" alt="nord theme">
+  <img src="docs/theme-onyx.png" width="49%" alt="onyx theme">
   <img src="docs/theme-ember.png" width="49%" alt="ember theme">
   <img src="docs/theme-paper.png" width="49%" alt="paper theme">
 </p>

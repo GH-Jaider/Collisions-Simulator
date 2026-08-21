@@ -18,7 +18,7 @@ export interface ThemeId {
 
 export const THEMES: ThemeId[] = [
   { id: "charm", label: "charm" },
-  { id: "nord", label: "nord" },
+  { id: "onyx", label: "onyx" },
   { id: "ember", label: "ember" },
   { id: "paper", label: "paper" },
 ];
