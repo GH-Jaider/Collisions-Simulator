@@ -1,5 +1,7 @@
 /** Small canvas readouts: a rolling time series and a distribution. */
 
+import { alpha } from "../render/color";
+import { theme } from "../render/theme";
 import type { Panel } from "./panels";
 
 interface Shell {
@@ -48,7 +50,8 @@ function fitCanvas(canvas: HTMLCanvasElement): CanvasRenderingContext2D | null {
 
 export interface Series {
   label: string;
-  color: string;
+  /** Read every frame, so a theme change is picked up without a rebuild. */
+  color: () => string;
   sample: () => number;
 }
 
@@ -73,13 +76,13 @@ export function chartPanel(
 
   const legend = document.createElement("div");
   legend.className = "chart-legend";
-  for (const item of series) {
+  const swatches = series.map((item) => {
     const entry = document.createElement("span");
     const swatch = document.createElement("i");
-    swatch.style.background = item.color;
     entry.append(swatch, document.createTextNode(item.label));
     legend.append(entry);
-  }
+    return swatch;
+  });
   body.append(legend);
 
   const buffers = series.map(() => [] as number[]);
@@ -118,7 +121,7 @@ export function chartPanel(
       floor = floor === 0 && low === 0 ? 0 : floor + (low - pad - floor) * 0.08;
       const span = Math.max(ceiling - floor, 1e-9);
 
-      ctx.strokeStyle = "rgba(140, 150, 190, 0.09)";
+      ctx.strokeStyle = alpha(theme().canvasLine, 0.13);
       ctx.lineWidth = 1;
       ctx.beginPath();
       for (let i = 1; i < 4; i++) {
@@ -130,7 +133,7 @@ export function chartPanel(
 
       if (floor < 0 && ceiling > 0) {
         const zero = height - ((0 - floor) / span) * height;
-        ctx.strokeStyle = "rgba(140, 150, 190, 0.3)";
+        ctx.strokeStyle = alpha(theme().canvasLine, 0.35);
         ctx.beginPath();
         ctx.moveTo(0, Math.round(zero) + 0.5);
         ctx.lineTo(width, Math.round(zero) + 0.5);
@@ -139,6 +142,7 @@ export function chartPanel(
 
       for (let i = 0; i < series.length; i++) {
         const buffer = buffers[i]!;
+        swatches[i]!.style.background = series[i]!.color();
         if (buffer.length < 2) continue;
         ctx.beginPath();
         for (let index = 0; index < buffer.length; index++) {
@@ -147,7 +151,7 @@ export function chartPanel(
           if (index === 0) ctx.moveTo(x, y);
           else ctx.lineTo(x, y);
         }
-        ctx.strokeStyle = series[i]!.color;
+        ctx.strokeStyle = series[i]!.color();
         ctx.lineWidth = 1.5;
         ctx.lineJoin = "round";
         ctx.stroke();
@@ -167,7 +171,7 @@ export interface HistogramSource {
    */
   theory?: () => ((speed: number) => number) | null;
   theoryLabel?: string;
-  color: string;
+  color: () => string;
 }
 
 /**
@@ -230,7 +234,7 @@ export function histogramPanel(title: string, source: HistogramSource, note?: st
       }
 
       const barWidth = width / bins;
-      ctx.fillStyle = source.color;
+      ctx.fillStyle = source.color();
       for (let i = 0; i < bins; i++) {
         // Quantised to whole pixels so every bar has the same crisp edge --
         // a half-covered pixel is the one thing a cell grid cannot express.
@@ -258,7 +262,7 @@ export function histogramPanel(title: string, source: HistogramSource, note?: st
             if (i === 0) ctx.moveTo(x, y);
             else ctx.lineTo(x, y);
           }
-          ctx.strokeStyle = "#ffc861";
+          ctx.strokeStyle = theme().amber;
           ctx.lineWidth = 1.6;
           ctx.lineJoin = "round";
           ctx.stroke();
@@ -266,7 +270,7 @@ export function histogramPanel(title: string, source: HistogramSource, note?: st
         if (!legend.childElementCount && source.theoryLabel) {
           const entry = document.createElement("span");
           const swatch = document.createElement("i");
-          swatch.style.background = "#ffc861";
+          swatch.style.background = theme().amber;
           entry.append(swatch, document.createTextNode(source.theoryLabel));
           legend.append(entry);
         }

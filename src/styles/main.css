@@ -16,10 +16,17 @@
    ========================================================================= */
 
 :root {
+  /* ---------------------------------------------------------------------
+     charm — hot pink and purple on near-black. The default.
+
+     Themes live here rather than in TypeScript so there is exactly one place
+     a colour is written down. The canvas reads these same custom properties
+     back through getComputedStyle when the theme changes, which is why every
+     value below has to stay a plain hex literal.
+     --------------------------------------------------------------------- */
   --bg: #0c0c12;
   --bg-panel: #111119;
   --bg-raised: #1a1a24;
-  --bg-inset: #08080d;
 
   --line: #2b2b39;
   --line-bright: #45455a;
@@ -28,7 +35,6 @@
   --text-dim: #9494ab;
   --text-faint: #61617a;
 
-  /* Charm-adjacent accents: hot pink leads, purple and cyan support. */
   --pink: #ff5fa2;
   --purple: #a98bff;
   --cyan: #4fe3d2;
@@ -38,6 +44,27 @@
   --red: #ff6b6b;
   --blue: #6fa8ff;
 
+  /* Canvas. `--canvas-bg` must equal `--bg`, or the panel title chips that
+     straddle the viewport border show up as patches against it. */
+  --canvas-bg: #0c0c12;
+  --canvas-dot: #9aa0cd;
+  --canvas-line: #969fcd;
+  --canvas-tick: #7880a0;
+  --canvas-mark: #ffffff;
+
+  /* Bodies, in the order labs hand them out. */
+  --body-1: #ff5fa2;
+  --body-2: #4fe3d2;
+  --body-3: #ffc861;
+  --body-4: #a98bff;
+  --body-5: #45dd8b;
+  --body-6: #6fa8ff;
+  --body-7: #ff9f5f;
+  --body-8: #cdfa54;
+  --body-star: #ffd873;
+  --body-cue: #f2f2f8;
+
+  --grain: rgba(150, 150, 190, 0.05);
   --ok: var(--green);
   --warn: var(--amber);
 
@@ -46,6 +73,157 @@
 
   --rail: 340px;
   --cell: 1.55;
+
+  /* Swatch previews. Fixed values on purpose: each one has to show its own
+     theme no matter which theme is active. */
+  --sw-charm-bg: #0c0c12;
+  --sw-charm-a: #ff5fa2;
+  --sw-charm-b: #4fe3d2;
+  --sw-nord-bg: #1c212a;
+  --sw-nord-a: #88c0d0;
+  --sw-nord-b: #b48ead;
+  --sw-ember-bg: #1b1a17;
+  --sw-ember-a: #fe8019;
+  --sw-ember-b: #b8bb26;
+  --sw-paper-bg: #f2efe7;
+  --sw-paper-a: #c2255c;
+  --sw-paper-b: #0b7285;
+}
+
+/* -----------------------------------------------------------------------
+   nord — the icy one. Cool and low-contrast by design; the accents are
+   muted enough that the readouts recede and the simulation leads.
+   ----------------------------------------------------------------------- */
+[data-theme="nord"] {
+  --bg: #1c212a;
+  --bg-panel: #232a35;
+  --bg-raised: #2f3846;
+
+  --line: #3a4353;
+  --line-bright: #566073;
+
+  --text: #eceff4;
+  --text-dim: #a7b3c7;
+  --text-faint: #71809a;
+
+  --pink: #b48ead;
+  --purple: #9d8bd0;
+  --cyan: #88c0d0;
+  --lime: #a3be8c;
+  --amber: #ebcb8b;
+  --green: #a3be8c;
+  --red: #bf616a;
+  --blue: #81a1c1;
+
+  --canvas-bg: #1c212a;
+  --canvas-dot: #8fa3c4;
+  --canvas-line: #8296b8;
+  --canvas-tick: #7d8CA6;
+  --canvas-mark: #eceff4;
+
+  --body-1: #88c0d0;
+  --body-2: #a3be8c;
+  --body-3: #ebcb8b;
+  --body-4: #b48ead;
+  --body-5: #d08770;
+  --body-6: #81a1c1;
+  --body-7: #8fbcbb;
+  --body-8: #bf616a;
+  --body-star: #ebcb8b;
+  --body-cue: #eceff4;
+
+  --grain: rgba(160, 180, 220, 0.05);
+}
+
+/* -----------------------------------------------------------------------
+   ember — the warm retro one, in the lineage of gruvbox: orange and olive
+   over a brown-black, the colour of a terminal that has been on all night.
+   ----------------------------------------------------------------------- */
+[data-theme="ember"] {
+  --bg: #1b1a17;
+  --bg-panel: #232120;
+  --bg-raised: #322e2b;
+
+  --line: #423b36;
+  --line-bright: #665c54;
+
+  --text: #ebdbb2;
+  --text-dim: #b3a288;
+  --text-faint: #857b6c;
+
+  --pink: #fe8019;
+  --purple: #d3869b;
+  --cyan: #8ec07c;
+  --lime: #b8bb26;
+  --amber: #fabd2f;
+  --green: #b8bb26;
+  --red: #fb4934;
+  --blue: #83a598;
+
+  --canvas-bg: #1b1a17;
+  --canvas-dot: #b8a68a;
+  --canvas-line: #a89a80;
+  --canvas-tick: #968872;
+  --canvas-mark: #fbf1c7;
+
+  --body-1: #fb4934;
+  --body-2: #8ec07c;
+  --body-3: #fabd2f;
+  --body-4: #d3869b;
+  --body-5: #b8bb26;
+  --body-6: #83a598;
+  --body-7: #fe8019;
+  --body-8: #d65d0e;
+  --body-star: #fabd2f;
+  --body-cue: #fbf1c7;
+
+  --grain: rgba(220, 190, 140, 0.05);
+}
+
+/* -----------------------------------------------------------------------
+   paper — the light one. Not an inversion: a light background needs darker,
+   more saturated accents to hold the same weight, and the grid has to be
+   drawn in ink rather than in light.
+   ----------------------------------------------------------------------- */
+[data-theme="paper"] {
+  --bg: #f2efe7;
+  --bg-panel: #f9f7f1;
+  --bg-raised: #e7e2d6;
+
+  --line: #cec7b7;
+  --line-bright: #a79e8b;
+
+  --text: #23211c;
+  --text-dim: #5b564b;
+  --text-faint: #8a8375;
+
+  --pink: #c2255c;
+  --purple: #6741a5;
+  --cyan: #0b7285;
+  --lime: #5c7a10;
+  --amber: #9c6a06;
+  --green: #216e39;
+  --red: #b02525;
+  --blue: #1864ab;
+
+  --canvas-bg: #f2efe7;
+  --canvas-dot: #6d6553;
+  --canvas-line: #7d7462;
+  --canvas-tick: #857c6a;
+  --canvas-mark: #23211c;
+
+  --body-1: #c2255c;
+  --body-2: #0b7285;
+  --body-3: #9c6a06;
+  --body-4: #6741a5;
+  --body-5: #216e39;
+  --body-6: #1864ab;
+  --body-7: #bf4416;
+  --body-8: #5c7a10;
+  --body-star: #b5820a;
+  --body-cue: #3a352c;
+
+  --grain: rgba(80, 70, 50, 0.05);
 }
 
 *,
@@ -78,7 +256,7 @@ body {
   z-index: 9999;
   pointer-events: none;
   opacity: 0.5;
-  background-image: radial-gradient(circle at 1px 1px, rgba(150, 150, 190, 0.05) 1px, transparent 0);
+  background-image: radial-gradient(circle at 1px 1px, var(--grain) 1px, transparent 0);
   background-size: 4px 4px;
 }
 
@@ -242,7 +420,115 @@ button {
 }
 
 .masthead-end {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   flex: none;
+}
+
+.themes {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.themes-label {
+  font-size: 10px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+@media (max-width: 1180px) {
+  .themes-label {
+    display: none;
+  }
+}
+
+/* Each swatch previews its own theme rather than describing it: two bands of
+   the palette it would switch to, over that theme's own background. */
+.theme-swatch {
+  width: 20px;
+  height: 15px;
+  padding: 0;
+  border: 1px solid var(--line);
+  background: none;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.1s, transform 0.1s;
+}
+
+.theme-swatch::before,
+.theme-swatch::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 6px;
+}
+
+.theme-swatch::before {
+  right: 50%;
+}
+
+.theme-swatch::after {
+  left: 50%;
+}
+
+.theme-swatch:hover {
+  border-color: var(--line-bright);
+}
+
+.theme-swatch[aria-pressed="true"] {
+  border-color: var(--text);
+  transform: scale(1.12);
+}
+
+/* The swatch for "charm" is painted in that theme's own colours, whichever
+   theme is currently active -- so it previews rather than merely labels. */
+.theme-swatch[data-theme="charm"] {
+  background: var(--sw-charm-bg);
+}
+.theme-swatch[data-theme="charm"]::before {
+  background: var(--sw-charm-a);
+}
+.theme-swatch[data-theme="charm"]::after {
+  background: var(--sw-charm-b);
+}
+
+/* The swatch for "nord" is painted in that theme's own colours, whichever
+   theme is currently active -- so it previews rather than merely labels. */
+.theme-swatch[data-theme="nord"] {
+  background: var(--sw-nord-bg);
+}
+.theme-swatch[data-theme="nord"]::before {
+  background: var(--sw-nord-a);
+}
+.theme-swatch[data-theme="nord"]::after {
+  background: var(--sw-nord-b);
+}
+
+/* The swatch for "ember" is painted in that theme's own colours, whichever
+   theme is currently active -- so it previews rather than merely labels. */
+.theme-swatch[data-theme="ember"] {
+  background: var(--sw-ember-bg);
+}
+.theme-swatch[data-theme="ember"]::before {
+  background: var(--sw-ember-a);
+}
+.theme-swatch[data-theme="ember"]::after {
+  background: var(--sw-ember-b);
+}
+
+/* The swatch for "paper" is painted in that theme's own colours, whichever
+   theme is currently active -- so it previews rather than merely labels. */
+.theme-swatch[data-theme="paper"] {
+  background: var(--sw-paper-bg);
+}
+.theme-swatch[data-theme="paper"]::before {
+  background: var(--sw-paper-a);
+}
+.theme-swatch[data-theme="paper"]::after {
+  background: var(--sw-paper-b);
 }
 
 .ghost-button {

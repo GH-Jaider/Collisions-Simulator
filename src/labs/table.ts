@@ -5,14 +5,10 @@ import { defaultParameters } from "../physics/world";
 import type { Renderer } from "../render/renderer";
 import { fixed } from "../ui/format";
 import { controlsPanel, metricsPanel, notePanel, type Panel } from "../ui/panels";
+import { bodyColor, theme } from "../render/theme";
 import { seeded } from "./layout";
 import type { Lab, LabHost, PointerState, Toggle } from "./types";
 
-const RACK_COLORS = [
-  "#ffc861", "#4fe3d2", "#ff5fa2", "#a98bff", "#45dd8b",
-  "#ff9f5f", "#6fa8ff", "#ff6b8f", "#cdfa54", "#c39bff",
-  "#ffd873", "#5fd8e8", "#ff7a7a", "#8f7bff", "#5fe0a8",
-];
 
 /**
  * A pool break, and the sandbox where the pointer is allowed to interfere.
@@ -80,7 +76,7 @@ export class TableLab implements Lab {
             position: new Vec2(apexX + row * gap * 0.866, midY + (slot - row * 0.5) * gap),
             radius,
             mass: 0.17,
-            color: RACK_COLORS[index % RACK_COLORS.length]!,
+            color: bodyColor(index),
           }),
         );
         index++;
@@ -93,7 +89,7 @@ export class TableLab implements Lab {
         velocity: new Vec2(this.power, (this.random() - 0.5) * 0.05),
         radius,
         mass: 0.17,
-        color: "#f2f2f8",
+        color: theme().cue,
         label: "",
       }),
     );

@@ -6,11 +6,11 @@ import type { Renderer } from "../render/renderer";
 import { chartPanel } from "../ui/charts";
 import { fixed, percent } from "../ui/format";
 import { controlsPanel, metricsPanel, type Panel } from "../ui/panels";
+import { bodyColor, theme } from "../render/theme";
 import { seeded } from "./layout";
 import { radiusForMass } from "./scale";
 import type { Lab, LabHost, PointerState, Toggle } from "./types";
 
-const SHELL_COLORS = ["#ffc861", "#45dd8b", "#4fe3d2", "#a98bff", "#ff5fa2"];
 /**
  * Satellites default to near-massless, and it matters.
  *
@@ -135,7 +135,7 @@ export class GravityLab implements Lab {
         position: centre,
         radius: starRadius,
         mass: this.starMass,
-        color: "#ffd873",
+        color: theme().star,
         isStatic: true,
         label: "★",
       }),
@@ -169,7 +169,7 @@ export class GravityLab implements Lab {
             velocity: Vec2.fromPolar(speed, angle + Math.PI / 2),
             radius: satelliteRadius,
             mass: this.satelliteMass,
-            color: SHELL_COLORS[shell % SHELL_COLORS.length]!,
+            color: bodyColor(shell),
           }),
         );
         this.launchRadii.set(satellite.id, distance);
@@ -210,13 +210,12 @@ export class GravityLab implements Lab {
     }
 
     if (!this.gravityOn) {
-      renderer.drawNote("gravity off · no force, so no curve", 12, 12, "#ffc861");
+      renderer.drawNote("gravity off · no force, so no curve", 12, 12, theme().amber);
       if (this.sinceCut > 0.7) {
         renderer.drawNote(
           "each body leaves along its tangent, not outward from the centre",
           12,
           28,
-          "#9494ab",
         );
       }
     }
@@ -328,9 +327,9 @@ export class GravityLab implements Lab {
     const energy = chartPanel(
       "energy exchange",
       [
-        { label: "kinetic", color: "#4fe3d2", sample: () => world.kineticEnergy },
-        { label: "potential", color: "#ff5fa2", sample: () => world.potentialEnergy },
-        { label: "total", color: "#45dd8b", sample: () => world.totalEnergy },
+        { label: "kinetic", color: () => theme().cyan, sample: () => world.kineticEnergy },
+        { label: "potential", color: () => theme().pink, sample: () => world.potentialEnergy },
+        { label: "total", color: () => theme().green, sample: () => world.totalEnergy },
       ],
       { includeZero: false, note: "sum is flat" },
     );

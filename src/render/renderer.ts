@@ -1,6 +1,7 @@
 import type { Body } from "../physics/body";
 import { Vec2 } from "../physics/vec";
 import { alpha, darken, lighten } from "./color";
+import { theme } from "./theme";
 
 export interface BodyStyle {
   /** Draw a bright ring around the body, e.g. the one under the pointer. */
@@ -19,9 +20,11 @@ export interface VectorStyle {
   width?: number;
 }
 
-const GRID_DOT = "rgba(150, 160, 205, 0.3)";
-const GRID_MAJOR = "rgba(150, 160, 205, 0.11)";
-const TICK_TEXT = "rgba(120, 128, 160, 0.8)";
+/** Grid ink is the theme's own colour at a fixed weight, so a light theme
+ *  draws the lattice in ink and a dark one draws it in light. */
+const DOT_ALPHA = 0.34;
+const LINE_ALPHA = 0.13;
+const TICK_ALPHA = 0.85;
 
 /**
  * Draws the world onto a 2-D canvas.
@@ -93,7 +96,7 @@ export class Renderer {
 
   begin(): void {
     const { ctx } = this;
-    ctx.fillStyle = "#0c0c12";
+    ctx.fillStyle = theme().canvasBg;
     ctx.fillRect(0, 0, this.cssWidth, this.cssHeight);
     this.drawGraticule();
   }
@@ -109,6 +112,7 @@ export class Renderer {
    */
   private drawGraticule(): void {
     const { ctx, scale } = this;
+    const palette = theme();
     const major = chooseMajorSpacing(scale);
     const minor = major / 4;
 
@@ -126,7 +130,7 @@ export class Renderer {
       ctx.moveTo(0, py);
       ctx.lineTo(this.cssWidth, py);
     }
-    ctx.strokeStyle = GRID_MAJOR;
+    ctx.strokeStyle = alpha(palette.canvasLine, LINE_ALPHA);
     ctx.stroke();
 
     // Drawn as one path of tiny rectangles: a fill of many small paths is far
@@ -138,10 +142,10 @@ export class Renderer {
         ctx.rect(Math.round(this.x(mx)), py, 1, 1);
       }
     }
-    ctx.fillStyle = GRID_DOT;
+    ctx.fillStyle = alpha(palette.canvasDot, DOT_ALPHA);
     ctx.fill();
 
-    ctx.fillStyle = TICK_TEXT;
+    ctx.fillStyle = alpha(palette.canvasTick, TICK_ALPHA);
     ctx.font = '10px "JetBrains Mono", monospace';
     ctx.textBaseline = "alphabetic";
     // The scale note sits over the bottom-right, so the ruler stops short of
@@ -192,15 +196,18 @@ export class Renderer {
     const cy = this.x(body.position.y);
     const r = Math.max(1.5, body.radius * scale);
 
+    const palette = theme();
     ctx.save();
     ctx.globalAlpha = style.ghost ? 0.22 : 1;
 
-    // A flat fill under a brighter rim. Shading a sphere would be the wrong
+    // A flat fill under a saturated rim. Shading a sphere would be the wrong
     // idiom here: a terminal has no light source, and the ring is what makes
-    // a filled cell read as a distinct body against its neighbours.
+    // a filled cell read as a distinct body against its neighbours. The fill
+    // moves towards the page rather than always towards black, so the same
+    // rule works on a light ground.
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.fillStyle = darken(body.color, 0.42);
+    ctx.fillStyle = palette.light ? lighten(body.color, 0.62) : darken(body.color, 0.42);
     ctx.fill();
 
     if (r > 2.2) {
@@ -226,7 +233,7 @@ export class Renderer {
         0,
         Math.PI * 2,
       );
-      ctx.fillStyle = lighten(body.color, 0.55);
+      ctx.fillStyle = palette.light ? darken(body.color, 0.45) : lighten(body.color, 0.55);
       ctx.fill();
     }
 
@@ -234,7 +241,7 @@ export class Renderer {
       // Selection as a bracketed cell, the terminal way of marking a target.
       const reach = r + 4;
       const arm = Math.max(3, r * 0.42);
-      ctx.strokeStyle = "#ffffff";
+      ctx.strokeStyle = palette.canvasMark;
       ctx.lineWidth = 1.2;
       ctx.beginPath();
       for (const [sx, sy] of [
@@ -255,7 +262,7 @@ export class Renderer {
       ctx.font = `700 ${Math.min(12, r * 0.8)}px "JetBrains Mono", monospace`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillStyle = lighten(body.color, 0.7);
+      ctx.fillStyle = palette.light ? darken(body.color, 0.4) : lighten(body.color, 0.7);
       ctx.fillText(label, cx, cy + r * 0.04);
     }
 
@@ -333,7 +340,7 @@ export class Renderer {
     ctx.save();
     ctx.beginPath();
     ctx.arc(this.x(position.x), this.x(position.y), radius, 0, Math.PI * 2);
-    ctx.strokeStyle = `rgba(255, 200, 97, ${fade * fade * 0.42})`;
+    ctx.strokeStyle = alpha(theme().amber, fade * fade * 0.5);
     ctx.lineWidth = 1;
     ctx.stroke();
     ctx.restore();
@@ -370,7 +377,7 @@ export class Renderer {
   }
 
   /** A short caption pinned inside the viewport. */
-  drawNote(text: string, x: number, y: number, color = "rgba(139, 155, 180, 0.9)"): void {
+  drawNote(text: string, x: number, y: number, color = theme().textDim): void {
     const { ctx } = this;
     ctx.save();
     ctx.font = '11px "JetBrains Mono", monospace';

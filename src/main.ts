@@ -2,6 +2,7 @@ import { Body } from "./physics/body";
 import { Vec2 } from "./physics/vec";
 import { World, defaultParameters } from "./physics/world";
 import { Renderer } from "./render/renderer";
+import { THEMES, currentThemeId, onThemeChange, restoreTheme, setTheme } from "./render/theme";
 import { labs, type Lab, type LabHost, type Toggle } from "./labs";
 import type { Panel } from "./ui/panels";
 
@@ -35,6 +36,7 @@ class Application implements LabHost {
   private readonly statusState = query<HTMLElement>("#status-state");
   private readonly aboutDialog = query<HTMLDialogElement>("#about");
   private readonly aboutContent = query<HTMLElement>("#about-content");
+  private readonly themeHost = query<HTMLElement>("#themes");
 
   private lab: Lab = labs[0]!;
   private panels: Panel[] = [];
@@ -53,6 +55,8 @@ class Application implements LabHost {
 
   constructor() {
     this.renderer = new Renderer(query<HTMLCanvasElement>("#canvas"));
+    restoreTheme();
+    this.buildThemes();
     this.buildChannels();
     this.buildRates();
     this.bindTransport();
@@ -86,6 +90,35 @@ class Application implements LabHost {
       button.addEventListener("click", () => this.selectLab(lab));
       this.channels.append(button);
     });
+  }
+
+  private buildThemes(): void {
+    for (const entry of THEMES) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "theme-swatch";
+      button.dataset["theme"] = entry.id;
+      button.title = entry.label;
+      button.setAttribute("aria-label", `${entry.label} theme`);
+      button.addEventListener("click", () => setTheme(entry.id));
+      this.themeHost.append(button);
+    }
+    onThemeChange(() => {
+      this.syncThemes();
+      // Bodies take their colours when a lab lays them out, so the experiment
+      // is rebuilt. Every lab is seeded, so what comes back is the same setup
+      // in the new palette rather than a different one.
+      this.rearm();
+    });
+    this.syncThemes();
+  }
+
+  private syncThemes(): void {
+    const active = currentThemeId();
+    for (const child of Array.from(this.themeHost.children)) {
+      const id = (child as HTMLElement).dataset["theme"];
+      if (id) child.setAttribute("aria-pressed", String(id === active));
+    }
   }
 
   private buildRates(): void {

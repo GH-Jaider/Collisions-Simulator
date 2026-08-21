@@ -17,6 +17,14 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/src/styles/main.css" />
+    <script>
+      // Runs before first paint so a stored theme never flashes the default
+      // palette on the way in. Deliberately tiny and dependency-free.
+      try {
+        var t = localStorage.getItem("collisions.theme");
+        if (t && t !== "charm") document.documentElement.dataset.theme = t;
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div class="grain" aria-hidden="true"></div>
@@ -31,6 +39,9 @@
         <nav class="channels" id="channels" aria-label="Experiments"></nav>
 
         <div class="masthead-end">
+          <div class="themes" id="themes" role="group" aria-label="Colour theme">
+            <span class="themes-label">theme</span>
+          </div>
           <button class="ghost-button" id="about-button" type="button">
             <span class="key-cap">?</span>how it works
           </button>

@@ -7,6 +7,7 @@ import type { Renderer } from "../render/renderer";
 import { equationBlock, frac, num, op, v } from "../ui/equation";
 import { fixed, percent, signed } from "../ui/format";
 import { controlsPanel, customPanel, listPanel, metricsPanel, type Panel } from "../ui/panels";
+import { bodyColor, theme } from "../render/theme";
 import { radiusForMass } from "./scale";
 import type { Lab, LabHost, PointerState, Toggle } from "./types";
 
@@ -14,7 +15,6 @@ import type { Lab, LabHost, PointerState, Toggle } from "./types";
 const VELOCITY_SCALE = 0.22;
 const MAX_BODIES = 6;
 const NAMES = "ABCDEF";
-const COLORS = ["#ff5fa2", "#4fe3d2", "#ffc861", "#a98bff", "#45dd8b", "#6fa8ff"];
 
 /** One body as the reader configured it, independent of any World. */
 interface Spec {
@@ -189,7 +189,7 @@ export class CollisionsLab implements Lab {
         velocity: new Vec2(spec.velocity, 0),
         radius: radii[index]!,
         mass: spec.mass,
-        color: COLORS[index % COLORS.length]!,
+        color: bodyColor(index),
         label: NAMES[index] ?? "",
       });
       world.add(body);
@@ -252,10 +252,10 @@ export class CollisionsLab implements Lab {
       renderer.drawGuide(
         record.point.sub(record.normal.scale(extent)),
         record.point.add(record.normal.scale(extent)),
-        "rgba(255, 200, 97, 0.55)",
+        alpha(theme().amber, 0.6),
         [4, 4],
       );
-      renderer.drawCross(record.point, "rgba(255, 200, 97, 0.9)", 4);
+      renderer.drawCross(record.point, theme().amber, 4);
     }
 
     if (this.showVectors) {
@@ -309,7 +309,7 @@ export class CollisionsLab implements Lab {
       rows: () =>
         this.specs.map((spec, index) => ({
           key: String(index),
-          swatch: COLORS[index % COLORS.length]!,
+          swatch: bodyColor(index),
           name: NAMES[index] ?? "?",
           detail: `${fixed(spec.mass, 2)} kg  ${signed(spec.velocity, 2)} m/s`,
         })),

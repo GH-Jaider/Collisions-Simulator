@@ -169,6 +169,29 @@ web layout does. That means a few firm commitments:
 No ASCII art, though: the simulation is drawn with real geometry at full resolution. The
 aesthetic is the chrome, not the physics.
 
+### Themes
+
+Four palettes, picked from the swatches in the top right and remembered between visits:
+**charm** (hot pink on near-black), **nord** (cool and muted), **ember** (warm retro, in the
+gruvbox lineage) and **paper** (light, like a printed lab notebook).
+
+<p align="center">
+  <img src="docs/theme-charm.png" width="49%" alt="charm theme">
+  <img src="docs/theme-nord.png" width="49%" alt="nord theme">
+  <img src="docs/theme-ember.png" width="49%" alt="ember theme">
+  <img src="docs/theme-paper.png" width="49%" alt="paper theme">
+</p>
+
+They live in the stylesheet, not in TypeScript. The chrome takes each colour through
+`var(--x)` and the canvas reads the same custom property back with `getComputedStyle`, so
+every colour is written down exactly once — a table of hexes in CSS mirrored by a table of
+hexes in JavaScript drifts apart the first time anyone adjusts one of them.
+
+The one thing that cannot be a colour is direction: on a dark ground a body is filled by
+darkening its own colour and rimmed with the full one, and on a light ground that reads as
+a bright ring around a hole. So the shading flips, driven by the measured brightness of the
+background rather than a flag a new theme could forget to set.
+
 ## Using the physics on its own
 
 The engine knows nothing about canvases, the DOM, or display units:

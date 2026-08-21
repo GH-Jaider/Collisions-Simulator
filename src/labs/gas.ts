@@ -6,10 +6,9 @@ import type { Renderer } from "../render/renderer";
 import { chartPanel, histogramPanel } from "../ui/charts";
 import { fixed, percent } from "../ui/format";
 import { controlsPanel, metricsPanel, type Panel } from "../ui/panels";
+import { bodyColor, theme } from "../render/theme";
 import { scatter, seeded } from "./layout";
 import type { Lab, LabHost, PointerState, Toggle } from "./types";
-
-const PALETTE = ["#4fe3d2", "#45dd8b", "#a98bff", "#ffc861", "#ff5fa2", "#6fa8ff"];
 
 /**
  * A two-dimensional ideal gas.
@@ -73,7 +72,7 @@ export class GasLab implements Lab {
           velocity: Vec2.fromPolar(this.speed, angle),
           radius,
           mass: 0.05,
-          color: PALETTE[index % PALETTE.length]!,
+          color: bodyColor(index),
         }),
       );
     });
@@ -179,15 +178,15 @@ export class GasLab implements Lab {
     const chart = chartPanel(
       "energy and momentum",
       [
-        { label: "kinetic energy", color: "#45dd8b", sample: () => world.kineticEnergy },
-        { label: "|momentum|", color: "#a98bff", sample: () => world.totalMomentum.length },
+        { label: "kinetic energy", color: () => theme().green, sample: () => world.kineticEnergy },
+        { label: "|momentum|", color: () => theme().purple, sample: () => world.totalMomentum.length },
       ],
       { note: "flat at e=1" },
     );
 
     const distribution = histogramPanel("speed distribution", {
       values: () => world.speeds(),
-      color: "#4fe3d2",
+      color: () => theme().cyan,
       theoryLabel: "Maxwell–Boltzmann",
       theory: () => {
         const speeds = world.speeds();
