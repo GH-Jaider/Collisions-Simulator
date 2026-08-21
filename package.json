@@ -1,0 +1,21 @@
+{
+  "name": "collisions",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "An interactive rigid-body physics laboratory for the browser.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "happy-dom": "^20.11.6",
+    "typescript": "^5.7.0",
+    "vite": "^6.0.0",
+    "vitest": "^2.1.0"
+  }
+}
