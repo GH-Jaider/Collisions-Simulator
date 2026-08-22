@@ -2,7 +2,10 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
     <title>Collisions · a physics laboratory</title>
     <meta
       name="description"
@@ -25,7 +28,7 @@
         // Checked against the known set: a theme that has since been renamed
         // would otherwise leave the page on an attribute nothing styles and
         // no swatch matches.
-        if (["onyx", "ember", "paper"].indexOf(t) >= 0) {
+        if (["matte", "ember", "paper"].indexOf(t) >= 0) {
           document.documentElement.dataset.theme = t;
         }
       } catch (e) {}
@@ -44,7 +47,12 @@
         <nav class="channels" id="channels" aria-label="Experiments"></nav>
 
         <div class="masthead-end">
-          <div class="themes" id="themes" role="group" aria-label="Colour theme">
+          <div
+            class="themes"
+            id="themes"
+            role="group"
+            aria-label="Colour theme"
+          >
             <span class="themes-label">theme</span>
           </div>
           <button class="ghost-button" id="about-button" type="button">
@@ -68,13 +76,29 @@
 
           <div class="console">
             <div class="transport">
-              <button class="transport-button primary" id="play" type="button" aria-label="Play or pause">
-                <span class="glyph" id="play-glyph">❚❚</span><span id="play-label">pause</span>
+              <button
+                class="transport-button primary"
+                id="play"
+                type="button"
+                aria-label="Play or pause"
+              >
+                <span class="glyph" id="play-glyph">❚❚</span
+                ><span id="play-label">pause</span>
               </button>
-              <button class="transport-button" id="step" type="button" title="Advance one frame">
+              <button
+                class="transport-button"
+                id="step"
+                type="button"
+                title="Advance one frame"
+              >
                 <span class="glyph">▶❚</span><span>step</span>
               </button>
-              <button class="transport-button" id="reset" type="button" title="Restart the experiment">
+              <button
+                class="transport-button"
+                id="reset"
+                type="button"
+                title="Restart the experiment"
+              >
                 <span class="glyph">↺</span><span>restart</span>
               </button>
             </div>
@@ -105,12 +129,13 @@
       <article class="about-body">
         <header>
           <h2>how it works</h2>
-          <button class="ghost-button" id="about-close" type="button">esc</button>
+          <button class="ghost-button" id="about-close" type="button">
+            esc
+          </button>
         </header>
         <div id="about-content"></div>
       </article>
     </dialog>
-
 
     <script type="module" src="/src/main.ts"></script>
   </body>

@@ -18,7 +18,7 @@ export interface ThemeId {
 
 export const THEMES: ThemeId[] = [
   { id: "charm", label: "charm" },
-  { id: "onyx", label: "onyx" },
+  { id: "matte", label: "matte" },
   { id: "ember", label: "ember" },
   { id: "paper", label: "paper" },
 ];
@@ -61,7 +61,8 @@ const listeners = new Set<() => void>();
 
 function read(): ThemeColors {
   const style = getComputedStyle(document.documentElement);
-  const value = (name: string): string => style.getPropertyValue(name).trim() || "#888888";
+  const value = (name: string): string =>
+    style.getPropertyValue(name).trim() || "#888888";
   return {
     canvasBg: value("--canvas-bg"),
     canvasDot: value("--canvas-dot"),
@@ -87,7 +88,13 @@ function read(): ThemeColors {
 /** Perceived brightness, on the usual weighted-RGB approximation. */
 function isLight(hex: string): boolean {
   const clean = hex.replace("#", "");
-  const full = clean.length === 3 ? clean.split("").map((c) => c + c).join("") : clean;
+  const full =
+    clean.length === 3
+      ? clean
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : clean;
   const int = Number.parseInt(full, 16);
   if (!Number.isFinite(int)) return false;
   const r = (int >> 16) & 255;
