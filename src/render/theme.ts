@@ -1,30 +1,91 @@
 /**
  * Theme access for everything drawn on a canvas.
  *
- * The palettes live in the stylesheet, not here. That keeps a colour written
- * down exactly once -- the chrome takes it through `var(--x)` and the canvas
- * reads the same property back with `getComputedStyle`. The alternative, a
- * table of hexes in TypeScript mirrored by a table of hexes in CSS, drifts
- * apart the first time anyone adjusts one of them.
+ * The palettes live in the stylesheet, not here -- in teletipo's themes.css
+ * since the migration. That keeps a colour written down exactly once: the
+ * chrome takes it through `var(--x)` and the canvas reads the same property
+ * back. The alternative, a table of hexes in TypeScript mirrored by a table
+ * of hexes in CSS, drifts apart the first time anyone adjusts one of them.
  *
- * Resolving a custom property is not free, so the whole set is read once per
- * theme change and cached.
+ * Reading tokens, switching the document attribute and remembering the
+ * choice across visits are teletipo's job now (readTokens.ts / theme.ts);
+ * this module adapts them to the shape the lab's renderers expect, and adds
+ * the one thing the library cannot know: which properties this canvas cares
+ * about. Resolving a custom property is not free, so the whole set is read
+ * once per theme change and cached; an unresolved property falls back to
+ * teletipo's stand-in grey rather than an empty string.
  */
+
+import {
+  createTokenReader,
+  createTheme,
+  isLight,
+  THEMES as TELETIPO_THEMES,
+} from "teletipo";
 
 export interface ThemeId {
   id: string;
   label: string;
 }
 
-export const THEMES: ThemeId[] = [
-  { id: "charm", label: "charm" },
-  { id: "matte", label: "matte" },
-  { id: "ember", label: "ember" },
-  { id: "paper", label: "paper" },
-];
+/** Same four palettes the stylesheet and the swatch picker know. */
+export const THEMES: ThemeId[] = TELETIPO_THEMES.map((entry) => ({
+  id: entry.id,
+  label: entry.label,
+}));
 
-const DEFAULT_THEME = "charm";
 const STORAGE_KEY = "collisions.theme";
+
+/**
+ * The document properties this canvas reads back, mapped to the
+ * ThemeColors fields they feed. The domain tokens (--canvas-*, --body-*)
+ * are app-side, declared in styles/main.css; the rest come from the
+ * teletipo palettes.
+ */
+const PROPERTIES = {
+  canvasBg: "--canvas-bg",
+  canvasDot: "--canvas-dot",
+  canvasLine: "--canvas-line",
+  canvasTick: "--canvas-tick",
+  canvasMark: "--canvas-mark",
+  body1: "--body-1",
+  body2: "--body-2",
+  body3: "--body-3",
+  body4: "--body-4",
+  body5: "--body-5",
+  body6: "--body-6",
+  body7: "--body-7",
+  body8: "--body-8",
+  star: "--body-star",
+  cue: "--body-cue",
+  pink: "--pink",
+  purple: "--purple",
+  cyan: "--cyan",
+  amber: "--amber",
+  green: "--green",
+  red: "--red",
+  blue: "--blue",
+  text: "--text",
+  textDim: "--text-dim",
+} as const;
+
+/** The --body-N keys, in the order labs hand colours out. */
+const BODY_KEYS = [
+  "body1",
+  "body2",
+  "body3",
+  "body4",
+  "body5",
+  "body6",
+  "body7",
+  "body8",
+] as const;
+
+/** Owns the document attribute and the localStorage persistence. */
+const controller = createTheme({ storageKey: STORAGE_KEY });
+
+/** Cached token resolution; drops itself whenever the theme changes. */
+const reader = createTokenReader(controller, PROPERTIES);
 
 export interface ThemeColors {
   canvasBg: string;
@@ -57,55 +118,38 @@ export interface ThemeColors {
 }
 
 let cache: ThemeColors | null = null;
-const listeners = new Set<() => void>();
 
-function read(): ThemeColors {
-  const style = getComputedStyle(document.documentElement);
-  const value = (name: string): string =>
-    style.getPropertyValue(name).trim() || "#888888";
+controller.onChange(() => {
+  cache = null;
+});
+
+function buildColors(): ThemeColors {
+  const token = reader.read();
   return {
-    canvasBg: value("--canvas-bg"),
-    canvasDot: value("--canvas-dot"),
-    canvasLine: value("--canvas-line"),
-    canvasTick: value("--canvas-tick"),
-    canvasMark: value("--canvas-mark"),
-    bodies: [1, 2, 3, 4, 5, 6, 7, 8].map((index) => value(`--body-${index}`)),
-    star: value("--body-star"),
-    cue: value("--body-cue"),
-    pink: value("--pink"),
-    purple: value("--purple"),
-    cyan: value("--cyan"),
-    amber: value("--amber"),
-    green: value("--green"),
-    red: value("--red"),
-    blue: value("--blue"),
-    text: value("--text"),
-    textDim: value("--text-dim"),
-    light: isLight(value("--canvas-bg")),
+    canvasBg: token.canvasBg,
+    canvasDot: token.canvasDot,
+    canvasLine: token.canvasLine,
+    canvasTick: token.canvasTick,
+    canvasMark: token.canvasMark,
+    bodies: BODY_KEYS.map((key) => token[key]),
+    star: token.star,
+    cue: token.cue,
+    pink: token.pink,
+    purple: token.purple,
+    cyan: token.cyan,
+    amber: token.amber,
+    green: token.green,
+    red: token.red,
+    blue: token.blue,
+    text: token.text,
+    textDim: token.textDim,
+    light: isLight(token.canvasBg),
   };
-}
-
-/** Perceived brightness, on the usual weighted-RGB approximation. */
-function isLight(hex: string): boolean {
-  const clean = hex.replace("#", "");
-  const full =
-    clean.length === 3
-      ? clean
-          .split("")
-          .map((c) => c + c)
-          .join("")
-      : clean;
-  const int = Number.parseInt(full, 16);
-  if (!Number.isFinite(int)) return false;
-  const r = (int >> 16) & 255;
-  const g = (int >> 8) & 255;
-  const b = int & 255;
-  return (r * 299 + g * 587 + b * 114) / 1000 > 128;
 }
 
 /** The resolved palette for whichever theme is active. */
 export function theme(): ThemeColors {
-  if (!cache) cache = read();
+  if (!cache) cache = buildColors();
   return cache;
 }
 
@@ -116,40 +160,29 @@ export function bodyColor(index: number): string {
 }
 
 export function currentThemeId(): string {
-  return document.documentElement.dataset["theme"] ?? DEFAULT_THEME;
+  return controller.currentTheme();
 }
 
+/** Switch themes. An id outside THEMES is ignored, as before. */
 export function setTheme(id: string): void {
-  if (!THEMES.some((entry) => entry.id === id)) return;
-  if (id === DEFAULT_THEME) delete document.documentElement.dataset["theme"];
-  else document.documentElement.dataset["theme"] = id;
-  cache = null;
-  try {
-    localStorage.setItem(STORAGE_KEY, id);
-  } catch {
-    // Private browsing, or storage disabled. The theme still applies for this
-    // visit; only remembering it fails, which is not worth interrupting for.
-  }
-  for (const listener of listeners) listener();
+  controller.setTheme(id);
 }
 
 /** Called after the palette changes, once the new one is already resolvable. */
 export function onThemeChange(listener: () => void): void {
-  listeners.add(listener);
+  // The controller hands back an unsubscribe function; this module's long-
+  // standing API never had one to give, so it is dropped here.
+  controller.onChange(listener);
 }
 
 /**
  * Adopt the stored theme.
  *
- * A small inline script in the document head does this too, before first
- * paint, so the page never flashes the default palette. This is the fallback
- * for when that script did not run.
+ * Persistence itself lives in the controller now. A small inline script in
+ * the document head does the same thing before first paint, so the page
+ * never flashes the default palette; this is the fallback for when that
+ * script did not run.
  */
 export function restoreTheme(): void {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored && stored !== currentThemeId()) setTheme(stored);
-  } catch {
-    // Nothing to restore.
-  }
+  controller.restoreTheme();
 }
